@@ -1,11 +1,19 @@
-import path from 'path';
-import { FileReader } from './includes/FileReader';
+import { config } from './config';
+import { TelegramRepository } from './repositories/telegram';
 
-const getEnvConfig = async () => {
-  const dataEnv = await FileReader.read(path.join(__dirname, '.env'));
-  console.log(
-    Object.fromEntries(dataEnv.split('\n').map((item) => item.split('='))),
+console.log(config);
+
+const listenerResponce = async () => {
+  const result = await TelegramRepository.getUpdates();
+  if (result instanceof Error) return;
+  const chatIds = result.map((updateObject) => updateObject.message.chat.id);
+  const responceSend = await Promise.all(
+    chatIds.map((chatId) =>
+      TelegramRepository.sendMessage(chatId, 'Hello world'),
+    ),
   );
+  console.log(responceSend);
+  setTimeout(listenerResponce, 1000);
 };
 
-getEnvConfig();
+listenerResponce();
