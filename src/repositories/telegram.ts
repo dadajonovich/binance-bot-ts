@@ -19,7 +19,7 @@ type MessageObject = {
   text: string;
 };
 
-type TelegramReject = {
+type TelegramError = {
   ok: false;
   error_code: number;
   description: string;
@@ -30,7 +30,7 @@ type UpdateObject = {
   message: MessageObject;
 };
 
-type TelegramResponce<T> = {
+type TelegramSuccess<T> = {
   ok: true;
   result: T;
 };
@@ -39,8 +39,8 @@ export class TelegramRepository {
   private static lastUpdateId = 0;
   private static firstUpdate = true;
 
-  public static checkReject<T>(
-    responce: TelegramResponce<T> | TelegramReject,
+  private static checkReject<T>(
+    responce: TelegramSuccess<T> | TelegramError,
   ): T {
     if (responce.ok === true) return responce.result;
     throw new Error(`${responce.description}`);

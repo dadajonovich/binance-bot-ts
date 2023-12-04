@@ -1,5 +1,6 @@
-import { config } from './config';
+import { config, pairs } from './config';
 import { TelegramRepository } from './repositories/telegram';
+import { BinanceRepository } from './repositories/binance';
 
 console.log(config);
 
@@ -16,4 +17,12 @@ const listenerResponce = async () => {
   setTimeout(listenerResponce, 1000);
 };
 
-listenerResponce();
+const getCandles = async () => {
+  const candles = await Promise.all(
+    pairs.map(async (symbol) => await BinanceRepository.getCandles(symbol)),
+  );
+  console.log(candles);
+};
+
+getCandles();
+// listenerResponce();

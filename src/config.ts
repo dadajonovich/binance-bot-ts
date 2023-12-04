@@ -18,3 +18,37 @@ const getEnvConfig = (): Config => {
 export const config = getEnvConfig();
 
 export const telegramUrl = `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`;
+
+export const binanceUrl = 'https://api.binance.com';
+
+export const pairs = [
+  'BTCUSDT',
+  'ETHUSDT',
+  // 'XRPUSDT',
+  // 'ADAUSDT',
+  // 'SOLUSDT',
+  'DOGEUSDT',
+  // 'TRXUSDT',
+  // 'MATICUSDT',
+  // 'DOTUSDT',
+  // 'SHIBUSDT',
+  // 'LTCUSDT',
+  // 'AVAXUSDT',
+  // 'XLMUSDT',
+  // 'LINKUSDT',
+  // 'UNIUSDT',
+  // 'XMRUSDT',
+  // 'ATOMUSDT',
+  // 'HBARUSDT',
+  // 'FILUSDT',
+  // 'VETUSDT',
+  // 'NEARUSDT',
+  // 'ALGOUSDT',
+  // 'STXUSDT',
+  // 'EOSUSDT',
+  // 'SANDUSDT',
+  // 'FTMUSDT',
+  // 'MANAUSDT',
+  // 'NEOUSDT',
+  // 'PEPEUSDT',
+] as const;
