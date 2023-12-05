@@ -1,5 +1,9 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { FileReader } from './includes/FileReader';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 type Config = {
   BINANCE_API_KEY: string;
