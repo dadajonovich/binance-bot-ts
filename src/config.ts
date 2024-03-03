@@ -12,10 +12,11 @@ type Config = {
 };
 
 const getEnvConfig = (): Config => {
-  const dataEnv = FileReader.read(path.join(__dirname, '.env'));
-  //   console.log(
-  //     Object.fromEntries(dataEnv.split('\n').map((item) => item.split('='))),
-  //   );
+  const dataEnv = FileReader.read(path.join(__dirname, '../', '.env'));
+
+  console.log(
+    Object.fromEntries(dataEnv.split('\n').map((item) => item.split('='))),
+  );
   return Object.fromEntries(dataEnv.split('\n').map((item) => item.split('=')));
 };
 

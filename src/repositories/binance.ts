@@ -1,11 +1,5 @@
 import { binanceUrl, config, pairs } from '../config';
-
-type Candle = {
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-};
+import { Candle } from '../types';
 
 type BinanceError = {
   code: number;
@@ -22,9 +16,9 @@ export class BinanceRepository {
   public static async getCandles(
     symbol: (typeof pairs)[number],
   ): Promise<Candle[]> {
-    const responce = BinanceRepository.checkReject<number[][]>(
+    const responce = BinanceRepository.checkReject<string[][]>(
       await fetch(
-        `${binanceUrl}/api/v3/uiKlines?interval=1d&limit=35&symbol=${symbol}`,
+        `${binanceUrl}/api/v3/klines?interval=1d&limit=35&symbol=${symbol}`,
         {
           headers: {
             'X-MBX-APIKEY': config.BINANCE_API_KEY,
@@ -33,10 +27,10 @@ export class BinanceRepository {
       ).then((responce) => responce.json()),
     );
     return responce.map(([, open, high, low, close]) => ({
-      open,
-      high,
-      low,
-      close,
+      open: Number(open),
+      high: Number(high),
+      low: Number(low),
+      close: Number(close),
     }));
   }
 }
