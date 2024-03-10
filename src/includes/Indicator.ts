@@ -50,8 +50,7 @@ export class Indicator {
 
     return atr;
   }
-  public static getFilter(data: number[]) {
-    Statistic;
+  public static getFilter(data: number[]): number[] {
     const valueBetweenPeriods = Statistic.getValueBetweenPeriods(data);
     const filter = Statistic.getStd(valueBetweenPeriods, 20);
     return filter;
