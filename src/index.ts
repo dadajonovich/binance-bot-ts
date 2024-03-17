@@ -22,23 +22,24 @@ const listenerResponce = async () => {
 };
 
 const run = async () => {
-  const coins = await Promise.all(
-    pairs.map(async (pair) => {
-      const candles = await BinanceRepository.getCandles(pair);
-      const prices = Candles.getPrices(candles);
-      const { close, high, low, open } = prices;
-      const kama = Indicator.getKama(close, 10, 2, 30);
-      const atr = Indicator.getAtr(close, high, low, 10);
-      const filterKama = Indicator.getFilter(kama);
-      const filterAtr = Indicator.getFilter(atr);
-      const coin: Coin = { pair, kama, atr, filterKama, filterAtr };
+  console.log(await BinanceRepository.getBalances());
+  // const coins = await Promise.all(
+  //   pairs.map(async (pair) => {
+  //     const candles = await BinanceRepository.getCandles(pair);
+  //     const prices = Candles.getPrices(candles);
+  //     const { close, high, low, open } = prices;
+  //     const kama = Indicator.getKama(close, 10, 2, 30);
+  //     const atr = Indicator.getAtr(close, high, low, 10);
+  //     const filterKama = Indicator.getFilter(kama);
+  //     const filterAtr = Indicator.getFilter(atr);
+  //     const coin: Coin = { pair, kama, atr, filterKama, filterAtr };
 
-      console.log({ ...coin, close });
-      return coin;
-    }),
-  );
-  const buySignal = Forecast.calcBuySignal(coins);
-  console.log(buySignal);
+  //     console.log({ ...coin, close });
+  //     return coin;
+  //   }),
+  // );
+  // const buySignal = Forecast.calcBuySignal(coins);
+  // console.log(buySignal);
 };
 
 run();
