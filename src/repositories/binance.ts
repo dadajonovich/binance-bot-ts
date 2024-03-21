@@ -44,7 +44,8 @@ export class BinanceRepository {
     symbol: (typeof pairs)[number],
   ): Promise<Candle[]> {
     const responce = await BinanceRepository.request<string[][]>(
-      `klines?interval=1d&limit=35&symbol=${symbol}`,
+      // `klines?interval=1d&limit=35&symbol=${symbol}`,
+      `klines?interval=5m&limit=35&symbol=${symbol}`,
     );
 
     return responce.map(([, open, high, low, close]) => ({

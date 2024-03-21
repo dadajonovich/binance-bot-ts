@@ -25,6 +25,7 @@ export const config = getEnvConfig();
 export const telegramUrl = `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`;
 
 export const binanceUrl = 'https://testnet.binance.vision/api/v3';
+// export const binanceUrl = 'https://api.binance.com/api/v3';
 
 export const pairs = [
   'BTCUSDT',
@@ -42,7 +43,6 @@ export const pairs = [
   // 'XLMUSDT',
   // 'LINKUSDT',
   // 'UNIUSDT',
-  // 'XMRUSDT',
   // 'ATOMUSDT',
   // 'HBARUSDT',
   // 'FILUSDT',
