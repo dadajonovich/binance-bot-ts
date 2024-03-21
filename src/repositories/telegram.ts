@@ -25,7 +25,7 @@ type TelegramError = {
   description: string;
 };
 
-type UpdateObject = {
+export type UpdateObject = {
   update_id: number;
   message: MessageObject;
 };
@@ -39,21 +39,18 @@ export class TelegramRepository {
   private static lastUpdateId = 0;
   private static firstUpdate = true;
 
-  private static checkReject<T>(
-    responce: TelegramSuccess<T> | TelegramError,
-  ): T {
+  private static async request<T extends object>(url: string): Promise<T> {
+    const responce = (await fetch(`${telegramUrl}/${url}`).then((responce) =>
+      responce.json(),
+    )) as TelegramSuccess<T> | TelegramError;
     if (responce.ok === true) return responce.result;
     throw new Error(`${responce.description}`);
   }
 
   public static async getUpdates(): Promise<UpdateObject[] | Error> {
     try {
-      const result = TelegramRepository.checkReject<UpdateObject[]>(
-        await fetch(
-          `${telegramUrl}/getUpdates?offset=${
-            TelegramRepository.lastUpdateId + 1
-          }`,
-        ).then((response) => response.json()),
+      const result = await TelegramRepository.request<UpdateObject[]>(
+        `getUpdates?offset=${TelegramRepository.lastUpdateId + 1}`,
       );
       const lastUpdateId = result.at(-1)?.update_id;
       if (lastUpdateId) {
@@ -73,10 +70,8 @@ export class TelegramRepository {
     message: string,
   ): Promise<MessageObject | Error> {
     try {
-      return TelegramRepository.checkReject<MessageObject>(
-        await fetch(
-          `${telegramUrl}/sendMessage?chat_id=${chatId}&text=${message}`,
-        ).then((response) => response.json()),
+      return await TelegramRepository.request<MessageObject>(
+        `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
       );
     } catch (error) {
       return error as Error;

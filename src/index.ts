@@ -5,21 +5,12 @@ import { Candles } from './includes/Candles';
 import { Indicator } from './includes/Indicator';
 import { Forecast } from './includes/Forecast';
 import { Coin } from './types';
+import { TelegramCycle } from './services/TelegramCycle';
 
 console.log(config);
 
-const listenerResponce = async () => {
-  const result = await TelegramRepository.getUpdates();
-  if (result instanceof Error) return;
-  const chatIds = result.map((updateObject) => updateObject.message.chat.id);
-  const responceSend = await Promise.all(
-    chatIds.map((chatId) =>
-      TelegramRepository.sendMessage(chatId, 'Hello world'),
-    ),
-  );
-  console.log(responceSend);
-  setTimeout(listenerResponce, 1000);
-};
+const cycle = new TelegramCycle();
+cycle.start();
 
 const run = async () => {
   console.log(await BinanceRepository.getBalances());
@@ -42,5 +33,4 @@ const run = async () => {
   // console.log(buySignal);
 };
 
-run();
-listenerResponce();
+// run();

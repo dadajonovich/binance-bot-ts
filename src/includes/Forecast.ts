@@ -8,7 +8,6 @@ export class Forecast {
         extlow = ama[i - 1];
       }
     }
-    // console.log(extlow);
     const amaPrevious = ama.at(-2);
     const amaPrePrevious = ama.at(-3);
     const filterPrevious = filter.at(-2);
