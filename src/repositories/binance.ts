@@ -1,4 +1,5 @@
 import { binanceUrl, config, pairs } from '../config';
+import { Repository } from '../includes/Repository';
 import { Balance, Candle } from '../types';
 import { createHmac } from 'node:crypto';
 
@@ -7,52 +8,62 @@ type BinanceError = {
   msg: string;
 };
 
-export class BinanceRepository {
-  private static async request<T extends object>(url: string): Promise<T> {
-    const responce = await fetch(`${binanceUrl}/${url}`, {
-      headers: {
-        'X-MBX-APIKEY': config.BINANCE_API_KEY,
-      },
-    }).then((responce) => responce.json() as T | BinanceError);
-    if ('code' in responce && 'msg' in responce)
-      throw new Error(`${responce.msg}`);
-    return responce;
-  }
+export const BinanceRepository =
+  new (class BinanceRepository extends Repository<BinanceError> {
+    constructor() {
+      super(binanceUrl, {
+        headers: {
+          'X-MBX-APIKEY': config.BINANCE_API_KEY,
+        },
+      });
+    }
 
-  public static async getBalances(): Promise<Balance[]> {
-    type Account = {
-      balances: Record<'asset' | 'free' | 'locked', string>[];
-    };
+    protected errorHandler<T extends object>(
+      responce: T | BinanceError,
+    ): responce is T {
+      if ('code' in responce && 'msg' in responce)
+        throw new Error(`${responce.msg}`);
+      return true;
+    }
 
-    const timestamp = Date.now();
+    public async getBalances(): Promise<Balance[] | Error> {
+      type Account = {
+        balances: Record<'asset' | 'free' | 'locked', string>[];
+      };
 
-    const signature = createHmac('sha256', config.BINANCE_SECRET_KEY)
-      .update(`timestamp=${timestamp}`)
-      .digest('hex');
+      const timestamp = Date.now();
 
-    const responce = await BinanceRepository.request<Account>(
-      `account?signature=${signature}&timestamp=${timestamp}`,
-    );
-    return responce.balances.map(({ asset, free, locked }) => ({
-      asset,
-      free: Number(free),
-      locked: Number(locked),
-    }));
-  }
+      const signature = createHmac('sha256', config.BINANCE_SECRET_KEY)
+        .update(`timestamp=${timestamp}`)
+        .digest('hex');
 
-  public static async getCandles(
-    symbol: (typeof pairs)[number],
-  ): Promise<Candle[]> {
-    const responce = await BinanceRepository.request<string[][]>(
-      // `klines?interval=1d&limit=35&symbol=${symbol}`,
-      `klines?interval=5m&limit=35&symbol=${symbol}`,
-    );
+      const responce = await this.request<Account>(
+        `account?signature=${signature}&timestamp=${timestamp}`,
+      );
 
-    return responce.map(([, open, high, low, close]) => ({
-      open: Number(open),
-      high: Number(high),
-      low: Number(low),
-      close: Number(close),
-    }));
-  }
-}
+      if (responce instanceof Error) return responce;
+
+      return responce.balances.map(({ asset, free, locked }) => ({
+        asset,
+        free: Number(free),
+        locked: Number(locked),
+      }));
+    }
+
+    public async getCandles(
+      symbol: (typeof pairs)[number],
+    ): Promise<Candle[] | Error> {
+      const responce = await this.request<string[][]>(
+        // `klines?interval=1d&limit=35&symbol=${symbol}`,
+        `klines?interval=15m&limit=35&symbol=${symbol}`,
+      );
+      if (responce instanceof Error) return responce;
+
+      return responce.map(([, open, high, low, close]) => ({
+        open: Number(open),
+        high: Number(high),
+        low: Number(low),
+        close: Number(close),
+      }));
+    }
+  })();

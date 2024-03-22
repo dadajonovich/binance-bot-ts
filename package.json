@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "webpack --mode production --progress",
-    "start": "tsx watch src/index.ts"
+    "start": "tsx watch src/index.ts",
+    "bundle": "node dist/bundle.cjs"
   },
   "keywords": [],
   "author": "",

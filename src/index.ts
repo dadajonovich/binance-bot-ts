@@ -3,7 +3,7 @@ import { BinanceRepository } from './repositories/binance';
 import { TelegramCycle } from './services/TelegramCycle';
 import { Graph } from './entities/Graph/Graph';
 
-console.log(config);
+// console.log(config);
 
 const cycle = new TelegramCycle();
 cycle.start();
@@ -14,7 +14,7 @@ const run = async () => {
   for (const pair of pairs) {
     const candles = await BinanceRepository.getCandles(pair);
     const graph = new Graph(pair, candles);
-    console.log(graph);
+    // console.log(graph);
     if (graph.buySignal) {
       console.log(graph);
       break;
