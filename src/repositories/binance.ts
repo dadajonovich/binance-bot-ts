@@ -9,7 +9,7 @@ type BinanceError = {
 };
 
 export const BinanceRepository =
-  new (class BinanceRepository extends Repository<BinanceError> {
+  new (class BinanceRepository extends Repository<object, BinanceError> {
     constructor() {
       super(binanceUrl, {
         headers: {
