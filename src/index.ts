@@ -12,13 +12,21 @@ const run = async () => {
   // console.log(await BinanceRepository.getBalances());
 
   for (const pair of pairs) {
-    const candles = await BinanceRepository.getCandles(pair);
-    const graph = new Graph(pair, candles);
-    // console.log(graph);
-    if (graph.buySignal) {
-      console.log(graph);
-      break;
-    }
+    // const lotParams = await BinanceRepository.getLotParams(pair);
+    // console.log(lotParams);
+    const openOrders = await BinanceRepository.getOpenOrders(pair);
+    console.log(openOrders);
+    // const candles = await BinanceRepository.getCandles(pair);
+    // if (candles instanceof Error) {
+    //   console.log(candles.message);
+    //   continue;
+    // }
+    // const graph = new Graph(pair, candles);
+    // // console.log(graph);
+    // if (graph.buySignal) {
+    //   console.log(graph);
+    //   break;
+    // }
   }
 };
 

@@ -1,5 +1,3 @@
-import { Coin } from '../types';
-
 export class Forecast {
   public static buySignalKaufman(ama: number[], filter: number[]): boolean {
     let extlow = null;

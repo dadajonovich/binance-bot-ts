@@ -1,1 +1,4 @@
-export class Order {}
+export class Order {
+  stepSize: number;
+  tickSize: number;
+}

@@ -1,5 +1,5 @@
-import {telegramUrl} from '../config';
-import {Repository} from '../includes/Repository';
+import { telegramUrl } from '../config';
+import { Repository } from '../includes/Repository';
 
 type MessageObject = {
   message_id: number;
@@ -36,51 +36,55 @@ type TelegramSuccess<T> = {
   result: T;
 };
 
-export const TelegramRepository = new (class TelegramRepository extends Repository<TelegramSuccess<object>, TelegramError> {
-  private static lastUpdateId = 0;
-  private static firstUpdate = true;
+export const TelegramRepository =
+  new (class TelegramRepository extends Repository<
+    TelegramSuccess<object>,
+    TelegramError
+  > {
+    private static lastUpdateId = 0;
+    private static firstUpdate = true;
 
-  constructor() {
-    super(telegramUrl);
-  }
-
-  public async getUpdates(): Promise<UpdateObject[] | Error> {
-    const response = await this.request<TelegramSuccess<UpdateObject[]>>(
-      `getUpdates?offset=${TelegramRepository.lastUpdateId + 1}`,
-    );
-
-    if (response instanceof Error) return response;
-
-    const result = response.result;
-
-    const lastUpdateId = result.at(-1)?.update_id;
-    if (lastUpdateId) {
-      TelegramRepository.lastUpdateId = lastUpdateId;
+    constructor() {
+      super(telegramUrl);
     }
-    if (TelegramRepository.firstUpdate) {
-      TelegramRepository.firstUpdate = false;
-      return [];
+
+    public async getUpdates(): Promise<UpdateObject[] | Error> {
+      const response = await this.request<TelegramSuccess<UpdateObject[]>>(
+        `getUpdates?offset=${TelegramRepository.lastUpdateId + 1}`,
+      );
+
+      if (response instanceof Error) return response;
+
+      const result = response.result;
+
+      const lastUpdateId = result.at(-1)?.update_id;
+      if (lastUpdateId) {
+        TelegramRepository.lastUpdateId = lastUpdateId;
+      }
+      if (TelegramRepository.firstUpdate) {
+        TelegramRepository.firstUpdate = false;
+        return [];
+      }
+      return result;
     }
-    return result;
-  }
 
-  public async sendMessage(
-    chatId: number,
-    message: string,
-  ): Promise<MessageObject | Error> {
-    const response = await this.request<TelegramSuccess<MessageObject>>(
-      `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
-    );
+    public async sendMessage(
+      chatId: number,
+      message: string,
+    ): Promise<MessageObject | Error> {
+      const response = await this.request<TelegramSuccess<MessageObject>>(
+        `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
+      );
 
-    if (response instanceof Error) return response;
+      if (response instanceof Error) return response;
 
-    return response.result;
-  }
+      return response.result;
+    }
 
-  protected errorHandler(
-    responce: TelegramSuccess<object> | TelegramError,
-  ): responce is TelegramSuccess<object> {
-    if (responce.ok) return true;
-    throw new Error(`${responce.description}`);
-  }
-})();
+    protected errorHandler(
+      responce: TelegramSuccess<object> | TelegramError,
+    ): responce is TelegramSuccess<object> {
+      if (responce.ok) return true;
+      throw new Error(`${responce.description}`);
+    }
+  })();

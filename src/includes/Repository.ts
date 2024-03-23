@@ -21,8 +21,7 @@ export abstract class Repository<
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {
-      if (error instanceof Error)
-        return error;
+      if (error instanceof Error) return error;
 
       return new Error('Unknown exception');
     }
