@@ -9,13 +9,13 @@ const cycle = new TelegramCycle();
 cycle.start();
 
 const run = async () => {
-  // console.log(await BinanceRepository.getBalances());
+  console.log(await BinanceRepository.getBalances());
 
   for (const pair of pairs) {
     // const lotParams = await BinanceRepository.getLotParams(pair);
     // console.log(lotParams);
-    const openOrders = await BinanceRepository.getOpenOrders(pair);
-    console.log(openOrders);
+    // const openOrders = await BinanceRepository.getOpenOrders(pair);
+    // console.log(openOrders);
     // const candles = await BinanceRepository.getCandles(pair);
     // if (candles instanceof Error) {
     //   console.log(candles.message);

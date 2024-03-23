@@ -48,7 +48,12 @@ export const BinanceRepository =
       return responce;
     }
 
-    public async getBalances(): Promise<Balance[] | Error> {
+    public async getBalances(): Promise<Balance[] | Error>;
+    public async getBalances(asset: string): Promise<Balance | Error>;
+
+    public async getBalances(
+      asset?: string,
+    ): Promise<Balance[] | Balance | Error> {
       type Account = {
         balances: Record<'asset' | 'free' | 'locked', string>[];
       };
@@ -56,6 +61,18 @@ export const BinanceRepository =
       const responce = await this.protectedRequest<Account>(`account`);
 
       if (responce instanceof Error) return responce;
+
+      if (asset) {
+        const assetBalance = responce.balances.find(
+          (balance) => balance.asset === asset,
+        );
+
+        if (!assetBalance) return new Error('Invalid asset');
+        else {
+          const { asset, free, locked } = assetBalance;
+          return { asset, free: Number(free), locked: Number(locked) };
+        }
+      }
 
       return responce.balances.map(({ asset, free, locked }) => ({
         asset,
