@@ -9,7 +9,9 @@ const cycle = new TelegramCycle();
 cycle.start();
 
 const run = async () => {
-  console.log(await BinanceRepository.getBalances());
+  // console.log(await BinanceRepository.getBalances());
+  console.log(await BinanceRepository.getPrice('DOGEUSDT'));
+  console.log(await BinanceRepository.getLotParams('DOGEUSDT'));
 
   for (const pair of pairs) {
     // const lotParams = await BinanceRepository.getLotParams(pair);

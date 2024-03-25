@@ -42,6 +42,6 @@ export class Graph {
 
     this.buySignal =
       Forecast.buySignalKaufman(this.kama, this.filterKama) &&
-      Forecast.buySignalVolatility(this.atr, this.filterAtr);
+      Forecast.lowVolatility(this.atr, this.filterAtr);
   }
 }

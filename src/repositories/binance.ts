@@ -158,4 +158,16 @@ export const BinanceRepository =
 
       return responce;
     }
+
+    public async getPrice(
+      symbol: (typeof pairs)[number],
+    ): Promise<number | Error> {
+      type TickerPrice = { symbol: string; price: string };
+      const responce = await this.request<TickerPrice>(
+        `ticker/price?symbol=${symbol}`,
+      );
+      if (responce instanceof Error) return responce;
+
+      return Number(responce.price);
+    }
   })();
