@@ -42,9 +42,12 @@ export const BinanceRepository =
         .update(queryForHmac)
         .digest('hex');
 
-      const query = toQuery({ ...queryObjectForHmac, signature });
+      // const query = toQuery({ ...queryObjectForHmac, signature });
 
-      const responce = await this.request<T>(`${url}${query}`);
+      const responce = await this.request<T>(url, {
+        ...queryObjectForHmac,
+        signature,
+      });
       return responce;
     }
 
@@ -86,7 +89,9 @@ export const BinanceRepository =
     ): Promise<Candle[] | Error> {
       const responce = await this.request<string[][]>(
         // `klines?interval=1d&limit=35&symbol=${symbol}`,
-        `klines?interval=15m&limit=35&symbol=${symbol}`,
+        // `klines?interval=15m&limit=35&symbol=${symbol}`,
+        `klines`,
+        { interval: '15m', limit: 35, symbol },
       );
       if (responce instanceof Error) return responce;
 
@@ -117,9 +122,9 @@ export const BinanceRepository =
         }[];
       };
 
-      const responce = await this.request<ExchangeInfo>(
-        `exchangeInfo?symbol=${symbol}`,
-      );
+      const responce = await this.request<ExchangeInfo>(`exchangeInfo`, {
+        symbol,
+      });
 
       if (responce instanceof Error) return responce;
 
@@ -163,9 +168,9 @@ export const BinanceRepository =
       symbol: (typeof pairs)[number],
     ): Promise<number | Error> {
       type TickerPrice = { symbol: string; price: string };
-      const responce = await this.request<TickerPrice>(
-        `ticker/price?symbol=${symbol}`,
-      );
+      const responce = await this.request<TickerPrice>(`ticker/price`, {
+        symbol,
+      });
       if (responce instanceof Error) return responce;
 
       return Number(responce.price);

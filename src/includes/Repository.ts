@@ -1,23 +1,28 @@
+import { toQuery } from './toQuery';
+
 export abstract class Repository<
   ResponceObject extends object,
   ErrorObject extends object,
 > {
   private baseUrl: string;
-  private options?: RequestInit;
+  private defaultOptions?: RequestInit;
 
-  protected constructor(baseUrl: string, options?: RequestInit) {
+  protected constructor(baseUrl: string, defaultOptions?: RequestInit) {
     this.baseUrl = baseUrl;
-    this.options = options;
+    this.defaultOptions = defaultOptions;
   }
 
   protected async request<T extends ResponceObject>(
     url: string,
+    queryObject: Record<string, any> = {},
+    options: RequestInit = {},
   ): Promise<T | Error> {
     try {
-      const responce = (await fetch(
-        `${this.baseUrl}/${url}`,
-        this.options,
-      ).then((responce) => responce.json())) as T | ErrorObject;
+      const query = toQuery(queryObject);
+      const responce = (await fetch(`${this.baseUrl}/${url}${query}`, {
+        ...this.defaultOptions,
+        ...options,
+      }).then((responce) => responce.json())) as T | ErrorObject;
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {

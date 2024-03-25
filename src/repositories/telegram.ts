@@ -50,7 +50,8 @@ export const TelegramRepository =
 
     public async getUpdates(): Promise<UpdateObject[] | Error> {
       const response = await this.request<TelegramSuccess<UpdateObject[]>>(
-        `getUpdates?offset=${TelegramRepository.lastUpdateId + 1}`,
+        `getUpdates`,
+        { offset: TelegramRepository.lastUpdateId + 1 },
       );
 
       if (response instanceof Error) return response;
@@ -73,7 +74,9 @@ export const TelegramRepository =
       message: string,
     ): Promise<MessageObject | Error> {
       const response = await this.request<TelegramSuccess<MessageObject>>(
-        `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
+        // `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
+        `sendMessage`,
+        { chat_id: chatId, text: encodeURIComponent(message) },
       );
 
       if (response instanceof Error) return response;

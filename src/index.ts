@@ -10,15 +10,15 @@ cycle.start();
 
 const run = async () => {
   // console.log(await BinanceRepository.getBalances());
-  console.log(await BinanceRepository.getPrice('DOGEUSDT'));
-  console.log(await BinanceRepository.getLotParams('DOGEUSDT'));
+  // console.log(await BinanceRepository.getPrice('DOGEUSDT'));
+  // console.log(await BinanceRepository.getLotParams('DOGEUSDT'));
 
   for (const pair of pairs) {
     // const lotParams = await BinanceRepository.getLotParams(pair);
     // console.log(lotParams);
     // const openOrders = await BinanceRepository.getOpenOrders(pair);
     // console.log(openOrders);
-    // const candles = await BinanceRepository.getCandles(pair);
+    const candles = await BinanceRepository.getCandles(pair);
     // if (candles instanceof Error) {
     //   console.log(candles.message);
     //   continue;
