@@ -7,8 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitOverride": true,
     "strict": true,
-    "skipLibCheck": true,
-    "noEmit": true
+    "skipLibCheck": true
   },
   "include": ["/**/*.ts"],
   "exclude": ["node_modules"]

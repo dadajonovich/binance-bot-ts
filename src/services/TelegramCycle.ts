@@ -2,6 +2,13 @@ import { BinanceRepository } from '../repositories/binance';
 import { TelegramRepository } from '../repositories/telegram';
 import { pairs } from '../config';
 import { Graph } from '../entities/Graph/Graph';
+import { CronJob } from 'cron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { FileReader } from '../includes/FileReader';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class TelegramCycle {
   public async start() {
@@ -31,6 +38,7 @@ export class TelegramCycle {
             break;
 
           case '/start':
+            await this.commandStart();
             break;
 
           default:
@@ -46,6 +54,7 @@ export class TelegramCycle {
     //   ),
     // );
     // console.log(responceSend);
+
     setTimeout(this.start.bind(this), 1000);
   }
 
@@ -94,5 +103,34 @@ export class TelegramCycle {
     if (responce instanceof Error) {
       console.log(responce);
     }
+  }
+
+  private async commandStart() {
+    enum Mode {
+      buy = 'buy',
+      sell = 'sell',
+    }
+
+    const storage: { mode: Mode } = JSON.parse(
+      FileReader.read(path.join(__dirname, '../../', 'storage.json')),
+    );
+
+    if (storage.mode === Mode.buy) console.log(storage);
+    // const searchCoins = new CronJob(
+    //   '0 15 0 * * *',
+    //   async () => {
+    //     const storage = JSON.parse(
+    //       FileReader.read(path.join(__dirname, '../', 'storage.json')),
+    //     );
+    //   },
+    //   null,
+    //   null,
+    //   null,
+    //   null,
+    //   // true,
+    //   null,
+    //   0,
+    // );
+    // searchCoins.start();
   }
 }
