@@ -3,6 +3,7 @@ import { Repository } from '../includes/Repository';
 import { Balance, Candle } from '../types';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/toQuery';
+import { Order, OrderProps } from '../entities/Order/';
 
 type BinanceError = {
   code: number;
@@ -30,7 +31,7 @@ export const BinanceRepository =
     private async protectedRequest<T extends object>(
       url: string,
       queryObject: Record<string, any> = {},
-    ): Promise<T | Error> {
+    ): Promise<T> {
       const timestamp = Date.now();
 
       const queryObjectForHmac = { ...queryObject, timestamp };
@@ -51,26 +52,22 @@ export const BinanceRepository =
       return responce;
     }
 
-    public async getBalances(): Promise<Balance[] | Error>;
-    public async getBalances(asset: string): Promise<Balance | Error>;
+    public async getBalances(): Promise<Balance[]>;
+    public async getBalances(asset: string): Promise<Balance>;
 
-    public async getBalances(
-      asset?: string,
-    ): Promise<Balance[] | Balance | Error> {
+    public async getBalances(asset?: string): Promise<Balance[] | Balance> {
       type Account = {
         balances: Record<'asset' | 'free' | 'locked', string>[];
       };
 
       const responce = await this.protectedRequest<Account>(`account`);
 
-      if (responce instanceof Error) return responce;
-
       if (asset) {
         const assetBalance = responce.balances.find(
           (balance) => balance.asset === asset,
         );
 
-        if (!assetBalance) return new Error('Invalid asset');
+        if (!assetBalance) throw new Error('Invalid asset');
         else {
           const { asset, free, locked } = assetBalance;
           return { asset, free: Number(free), locked: Number(locked) };
@@ -84,16 +81,13 @@ export const BinanceRepository =
       }));
     }
 
-    public async getCandles(
-      symbol: (typeof pairs)[number],
-    ): Promise<Candle[] | Error> {
+    public async getKlines(symbol: (typeof pairs)[number]): Promise<Candle[]> {
       const responce = await this.request<string[][]>(
         // `klines?interval=1d&limit=35&symbol=${symbol}`,
         // `klines?interval=15m&limit=35&symbol=${symbol}`,
         `klines`,
         { interval: '15m', limit: 35, symbol },
       );
-      if (responce instanceof Error) return responce;
 
       return responce.map(([, open, high, low, close]) => ({
         open: Number(open),
@@ -105,7 +99,7 @@ export const BinanceRepository =
 
     public async getLotParams(
       symbol: (typeof pairs)[number],
-    ): Promise<Record<'stepSize' | 'tickSize', number> | Error> {
+    ): Promise<Record<'stepSize' | 'tickSize', number>> {
       type PriceFilter = {
         filterType: 'PRICE_FILTER';
         tickSize: string;
@@ -126,8 +120,6 @@ export const BinanceRepository =
         symbol,
       });
 
-      if (responce instanceof Error) return responce;
-
       const symbolObject = responce.symbols.find(
         ({ symbol: symbolName }) => symbolName === symbol,
       );
@@ -145,33 +137,24 @@ export const BinanceRepository =
           tickSize: Number(priceFilter.tickSize),
         };
 
-      return new Error('Filter not found');
+      throw new Error('Filter not found');
     }
 
-    public async getOpenOrders(symbol?: (typeof pairs)[number]) {
-      type OpenOrder = {
-        symbol: (typeof pairs)[number];
-        status: string;
-        type: string;
-        side: string;
-      };
-
-      const responce = await this.protectedRequest<OpenOrder>('openOrders', {
+    public async getOpenOrders(
+      symbol?: (typeof pairs)[number],
+    ): Promise<Order[]> {
+      const responce = await this.protectedRequest<OrderProps[]>('openOrders', {
         symbol,
       });
-      if (responce instanceof Error) return responce;
 
-      return responce;
+      return responce.map((order) => new Order(order));
     }
 
-    public async getPrice(
-      symbol: (typeof pairs)[number],
-    ): Promise<number | Error> {
+    public async getPrice(symbol: (typeof pairs)[number]): Promise<number> {
       type TickerPrice = { symbol: string; price: string };
       const responce = await this.request<TickerPrice>(`ticker/price`, {
         symbol,
       });
-      if (responce instanceof Error) return responce;
 
       return Number(responce.price);
     }

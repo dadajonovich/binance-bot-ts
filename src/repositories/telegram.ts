@@ -48,13 +48,11 @@ export const TelegramRepository =
       super(telegramUrl);
     }
 
-    public async getUpdates(): Promise<UpdateObject[] | Error> {
+    public async getUpdates(): Promise<UpdateObject[]> {
       const response = await this.request<TelegramSuccess<UpdateObject[]>>(
         `getUpdates`,
         { offset: TelegramRepository.lastUpdateId + 1 },
       );
-
-      if (response instanceof Error) return response;
 
       const result = response.result;
 
@@ -72,14 +70,12 @@ export const TelegramRepository =
     public async sendMessage(
       chatId: number,
       message: string,
-    ): Promise<MessageObject | Error> {
+    ): Promise<MessageObject> {
       const response = await this.request<TelegramSuccess<MessageObject>>(
         // `sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`,
         `sendMessage`,
         { chat_id: chatId, text: encodeURIComponent(message) },
       );
-
-      if (response instanceof Error) return response;
 
       return response.result;
     }

@@ -1,17 +1,29 @@
 import { BinanceRepository } from '../repositories/binance';
 import { TelegramRepository } from '../repositories/telegram';
 import { pairs } from '../config';
-import { Graph } from '../entities/Graph/Graph';
+import { Graph } from '../entities/Graph';
 import { CronJob } from 'cron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { FileReader } from '../includes/FileReader';
+import { sleep } from '../includes/sleep';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export class TelegramCycle {
   public async start() {
+    while (true) {
+      try {
+        await this.run();
+      } catch (error) {
+        console.log(error instanceof Error ? error.message : error);
+      }
+      await sleep(1000);
+    }
+  }
+
+  private async run() {
     const result = await TelegramRepository.getUpdates();
 
     if (result instanceof Error) {
@@ -38,7 +50,7 @@ export class TelegramCycle {
             break;
 
           case '/start':
-            await this.commandStart();
+            await this.commandStart(updateObject.message.chat.id);
             break;
 
           default:
@@ -46,16 +58,6 @@ export class TelegramCycle {
         }
       }),
     );
-
-    // const chatIds = result.map((updateObject) => updateObject.message.chat.id);
-    // const responceSend = await Promise.all(
-    //   chatIds.map((chatId) =>
-    //     TelegramRepository.sendMessage(chatId, 'Hello world'),
-    //   ),
-    // );
-    // console.log(responceSend);
-
-    setTimeout(this.start.bind(this), 1000);
   }
 
   private async balance(chatId: number) {
@@ -83,7 +85,7 @@ export class TelegramCycle {
   private async tellme(chatId: number) {
     const strongCoins = [];
     for (const pair of pairs) {
-      const candles = await BinanceRepository.getCandles(pair);
+      const candles = await BinanceRepository.getKlines(pair);
       if (candles instanceof Error) {
         console.log(candles.message);
         continue;
@@ -105,32 +107,59 @@ export class TelegramCycle {
     }
   }
 
-  private async commandStart() {
+  private async commandStart(chatId: number) {
     enum Mode {
-      buy = 'buy',
-      sell = 'sell',
+      buy = 'buy-signal',
+      sell = 'sell-signal',
     }
 
-    const storage: { mode: Mode } = JSON.parse(
-      FileReader.read(path.join(__dirname, '../../', 'storage.json')),
-    );
+    const searchCoins = new CronJob(
+      '0 15 0 * * *',
+      async () => {
+        const storage: { mode: Mode } = JSON.parse(
+          FileReader.read(path.join(__dirname, '../../', 'storage.json')),
+        );
+        if (storage.mode === Mode.buy) console.log(storage);
 
-    if (storage.mode === Mode.buy) console.log(storage);
-    // const searchCoins = new CronJob(
-    //   '0 15 0 * * *',
-    //   async () => {
-    //     const storage = JSON.parse(
-    //       FileReader.read(path.join(__dirname, '../', 'storage.json')),
-    //     );
-    //   },
-    //   null,
-    //   null,
-    //   null,
-    //   null,
-    //   // true,
-    //   null,
-    //   0,
-    // );
-    // searchCoins.start();
+        for (const pair of pairs) {
+          const candles = await BinanceRepository.getKlines(pair);
+          if (candles instanceof Error) {
+            console.log(candles.message);
+            continue;
+          }
+          const graph = new Graph(pair, candles);
+          if (graph.buySignal) {
+            console.log(graph);
+            const openOrders = await BinanceRepository.getOpenOrders();
+            if (openOrders instanceof Error) {
+              console.log(openOrders.message);
+              // Отменить все сделки и продать все монеты в USDT
+              searchCoins.stop();
+              return;
+            }
+
+            if (openOrders.length === 0) {
+              const balanceUsdt = await BinanceRepository.getBalances('USDT');
+              if (balanceUsdt instanceof Error) {
+                console.log(balanceUsdt.message);
+                return;
+              }
+              if (balanceUsdt.free < 11) {
+                await TelegramRepository.sendMessage(chatId, 'USDT < 10');
+              }
+            }
+            searchCoins.stop();
+          }
+        }
+      },
+      null,
+      null,
+      null,
+      null,
+      // true,
+      null,
+      0,
+    );
+    searchCoins.start();
   }
 }

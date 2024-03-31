@@ -16,7 +16,7 @@ export abstract class Repository<
     url: string,
     queryObject: Record<string, any> = {},
     options: RequestInit = {},
-  ): Promise<T | Error> {
+  ): Promise<T> {
     try {
       const query = toQuery(queryObject);
       const responce = (await fetch(`${this.baseUrl}/${url}${query}`, {
@@ -26,9 +26,9 @@ export abstract class Repository<
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {
-      if (error instanceof Error) return error;
+      if (error instanceof Error) throw Error;
 
-      return new Error('Unknown exception');
+      throw new Error('Unknown exception');
     }
   }
 
