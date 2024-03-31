@@ -1,15 +1,11 @@
 import { BinanceRepository } from '../repositories/binance';
 import { TelegramRepository } from '../repositories/telegram';
-import { pairs } from '../config';
+import { Pair, pairs } from '../config';
 import { Graph } from '../entities/Graph';
 import { CronJob } from 'cron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { FileReader } from '../includes/FileReader';
-import { sleep } from '../includes/sleep';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { sleep } from '../includes/sleep';
+import { storage } from '../entities/Storage';
 
 export class TelegramCycle {
   public async start() {
@@ -25,11 +21,6 @@ export class TelegramCycle {
 
   private async run() {
     const result = await TelegramRepository.getUpdates();
-
-    if (result instanceof Error) {
-      console.log(result);
-      return;
-    }
 
     await Promise.all(
       result.map(async (updateObject) => {
@@ -62,10 +53,7 @@ export class TelegramCycle {
 
   private async balance(chatId: number) {
     const balance = await BinanceRepository.getBalances();
-    if (balance instanceof Error) {
-      console.log(balance.message);
-      return;
-    }
+
     const message = balance
       .slice(0, 5)
       .map(
@@ -76,20 +64,14 @@ export class TelegramCycle {
       )
       .join('');
     console.log(message);
-    const responce = await TelegramRepository.sendMessage(chatId, message);
-    if (responce instanceof Error) {
-      console.log(responce);
-    }
+    await TelegramRepository.sendMessage(chatId, message);
   }
 
   private async tellme(chatId: number) {
     const strongCoins = [];
     for (const pair of pairs) {
       const candles = await BinanceRepository.getKlines(pair);
-      if (candles instanceof Error) {
-        console.log(candles.message);
-        continue;
-      }
+
       const graph = new Graph(pair, candles);
       if (graph.buySignal) {
         strongCoins.push(pair);
@@ -101,56 +83,44 @@ export class TelegramCycle {
         ? strongCoins.map((pair) => `\n${pair}`).join('')
         : 'Strong coins are missing';
 
-    const responce = await TelegramRepository.sendMessage(chatId, message);
-    if (responce instanceof Error) {
-      console.log(responce);
-    }
+    await TelegramRepository.sendMessage(chatId, message);
   }
 
   private async commandStart(chatId: number) {
-    enum Mode {
-      buy = 'buy-signal',
-      sell = 'sell-signal',
-    }
-
     const searchCoins = new CronJob(
-      '0 15 0 * * *',
+      // '0 15 0 * * *',
+      '0 */1 * * * *',
+
       async () => {
-        const storage: { mode: Mode } = JSON.parse(
-          FileReader.read(path.join(__dirname, '../../', 'storage.json')),
-        );
-        if (storage.mode === Mode.buy) console.log(storage);
+        try {
+          // Написать метод, который запускает продажу targetCoin
+          if (storage.targetPair === null) console.log(storage);
 
-        for (const pair of pairs) {
-          const candles = await BinanceRepository.getKlines(pair);
-          if (candles instanceof Error) {
-            console.log(candles.message);
-            continue;
-          }
-          const graph = new Graph(pair, candles);
-          if (graph.buySignal) {
-            console.log(graph);
-            const openOrders = await BinanceRepository.getOpenOrders();
-            if (openOrders instanceof Error) {
-              console.log(openOrders.message);
-              // Отменить все сделки и продать все монеты в USDT
-              searchCoins.stop();
-              return;
-            }
+          for (const pair of pairs) {
+            const candles = await BinanceRepository.getKlines(pair);
 
-            if (openOrders.length === 0) {
-              const balanceUsdt = await BinanceRepository.getBalances('USDT');
-              if (balanceUsdt instanceof Error) {
-                console.log(balanceUsdt.message);
-                return;
-              }
-              if (balanceUsdt.free < 11) {
-                await TelegramRepository.sendMessage(chatId, 'USDT < 10');
+            const graph = new Graph(pair, candles);
+            if (graph.buySignal) {
+              console.log(graph);
+              const openOrders = await BinanceRepository.getOpenOrders();
+
+              if (openOrders.length === 0) {
+                const balanceUsdt = await BinanceRepository.getBalances('USDT');
+
+                if (balanceUsdt.free < 11) {
+                  await TelegramRepository.sendMessage(chatId, 'USDT < 10');
+                  throw new Error('USDT < 10');
+                }
+
+                const { stepSize, tickSize } =
+                  await BinanceRepository.getLotParams(pair);
               }
             }
-            searchCoins.stop();
           }
+        } catch (error) {
+          console.log(error instanceof Error ? error.message : error);
         }
+        searchCoins.stop();
       },
       null,
       null,

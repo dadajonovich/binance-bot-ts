@@ -1,9 +1,10 @@
 import path from 'path';
+import { FileEditor } from './includes/FileEditor';
 import { fileURLToPath } from 'url';
-import { FileReader } from './includes/FileReader';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+export const rootDir = path.join(__dirname, '..');
 
 type Config = {
   BINANCE_API_KEY: string;
@@ -12,7 +13,7 @@ type Config = {
 };
 
 const getEnvConfig = (): Config => {
-  const dataEnv = FileReader.read(path.join(__dirname, '../', '.env'));
+  const dataEnv = FileEditor.read(path.join(rootDir, '.env'));
 
   console.log(
     Object.fromEntries(dataEnv.split('\n').map((item) => item.split('='))),
@@ -57,3 +58,5 @@ export const pairs = [
   // 'NEOUSDT',
   // 'PEPEUSDT',
 ] as const;
+
+export type Pair = (typeof pairs)[number];

@@ -6,6 +6,7 @@ import { Graph } from './entities/Graph';
 console.log(config);
 
 const cycle = new TelegramCycle();
+
 cycle.start();
 
 const run = async () => {

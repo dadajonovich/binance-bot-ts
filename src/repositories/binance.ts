@@ -1,13 +1,19 @@
-import { binanceUrl, config, pairs } from '../config';
+import { Pair, binanceUrl, config, pairs } from '../config';
 import { Repository } from '../includes/Repository';
 import { Balance, Candle } from '../types';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/toQuery';
-import { Order, OrderProps } from '../entities/Order/';
 
 type BinanceError = {
   code: number;
   msg: string;
+};
+
+export type Order = {
+  symbol: Pair;
+  side: 'SELL' | 'BUY';
+  type: 'LIMIT';
+  status: 'NEW' | 'PARTIALLY_FILLED';
 };
 
 export const BinanceRepository =
@@ -81,12 +87,12 @@ export const BinanceRepository =
       }));
     }
 
-    public async getKlines(symbol: (typeof pairs)[number]): Promise<Candle[]> {
+    public async getKlines(symbol: Pair): Promise<Candle[]> {
       const responce = await this.request<string[][]>(
         // `klines?interval=1d&limit=35&symbol=${symbol}`,
         // `klines?interval=15m&limit=35&symbol=${symbol}`,
         `klines`,
-        { interval: '15m', limit: 35, symbol },
+        { interval: '1m', limit: 35, symbol },
       );
 
       return responce.map(([, open, high, low, close]) => ({
@@ -98,7 +104,7 @@ export const BinanceRepository =
     }
 
     public async getLotParams(
-      symbol: (typeof pairs)[number],
+      symbol: Pair,
     ): Promise<Record<'stepSize' | 'tickSize', number>> {
       type PriceFilter = {
         filterType: 'PRICE_FILTER';
@@ -111,7 +117,7 @@ export const BinanceRepository =
 
       type ExchangeInfo = {
         symbols: {
-          symbol: (typeof pairs)[number];
+          symbol: Pair;
           filters: (PriceFilter | LotFilter)[];
         }[];
       };
@@ -140,22 +146,29 @@ export const BinanceRepository =
       throw new Error('Filter not found');
     }
 
-    public async getOpenOrders(
-      symbol?: (typeof pairs)[number],
-    ): Promise<Order[]> {
-      const responce = await this.protectedRequest<OrderProps[]>('openOrders', {
+    public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
+      return await this.protectedRequest<Order[]>('openOrders', {
         symbol,
       });
-
-      return responce.map((order) => new Order(order));
     }
 
-    public async getPrice(symbol: (typeof pairs)[number]): Promise<number> {
+    public async getPrice(symbol: Pair): Promise<number> {
       type TickerPrice = { symbol: string; price: string };
       const responce = await this.request<TickerPrice>(`ticker/price`, {
         symbol,
       });
 
       return Number(responce.price);
+    }
+
+    public async createOrder(
+      symbol: Pair,
+      side: Order['side'],
+      type: Order['type'],
+      quantity: number,
+      price: number,
+    ) {
+      // const
+      // await this.protectedRequest<Order>('order', {});
     }
   })();
