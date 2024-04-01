@@ -1,4 +1,4 @@
-import { toQuery } from './toQuery';
+import { toQuery } from './utils/toQuery';
 
 export abstract class Repository<
   ResponceObject extends object,
@@ -18,6 +18,7 @@ export abstract class Repository<
     options: RequestInit = {},
   ): Promise<T> {
     try {
+      console.log(`${this.baseUrl}/${url}`);
       const query = toQuery(queryObject);
       const responce = (await fetch(`${this.baseUrl}/${url}${query}`, {
         ...this.defaultOptions,

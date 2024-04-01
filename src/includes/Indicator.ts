@@ -14,8 +14,8 @@ export class Indicator {
     for (let i = len1; i < data.length; i++) {
       let volatility = 0;
       const direction = Math.abs(data[i] - data[i - len1]);
-      for (let a = 0; a < len1; a++) {
-        volatility += Math.abs(data[i - a] - data[i - a - 1]);
+      for (let j = 0; j < len1; j++) {
+        volatility += Math.abs(data[i - j] - data[i - j - 1]);
       }
 
       const er = direction / volatility;

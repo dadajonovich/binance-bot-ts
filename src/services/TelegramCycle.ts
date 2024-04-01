@@ -2,9 +2,9 @@ import { BinanceRepository } from '../repositories/binance';
 import { TelegramRepository } from '../repositories/telegram';
 import { Pair, pairs } from '../config';
 import { Graph } from '../entities/Graph';
-import { CronJob } from 'cron';
 
-import { sleep } from '../includes/sleep';
+import { sleep } from '../includes/utils/sleep';
+import { Spot } from '../entities/Spot';
 import { storage } from '../entities/Storage';
 
 export class TelegramCycle {
@@ -87,49 +87,11 @@ export class TelegramCycle {
   }
 
   private async commandStart(chatId: number) {
-    const searchCoins = new CronJob(
-      // '0 15 0 * * *',
-      '0 */1 * * * *',
-
-      async () => {
-        try {
-          // Написать метод, который запускает продажу targetCoin
-          if (storage.targetPair === null) console.log(storage);
-
-          for (const pair of pairs) {
-            const candles = await BinanceRepository.getKlines(pair);
-
-            const graph = new Graph(pair, candles);
-            if (graph.buySignal) {
-              console.log(graph);
-              const openOrders = await BinanceRepository.getOpenOrders();
-
-              if (openOrders.length === 0) {
-                const balanceUsdt = await BinanceRepository.getBalances('USDT');
-
-                if (balanceUsdt.free < 11) {
-                  await TelegramRepository.sendMessage(chatId, 'USDT < 10');
-                  throw new Error('USDT < 10');
-                }
-
-                const { stepSize, tickSize } =
-                  await BinanceRepository.getLotParams(pair);
-              }
-            }
-          }
-        } catch (error) {
-          console.log(error instanceof Error ? error.message : error);
-        }
-        searchCoins.stop();
-      },
-      null,
-      null,
-      null,
-      null,
-      // true,
-      null,
-      0,
-    );
-    searchCoins.start();
+    if (storage.balanceUsdt > 10) {
+      const trader = new Spot();
+      await trader.start(chatId);
+    } else {
+      await TelegramRepository.sendMessage(chatId, 'USDT < 10');
+    }
   }
 }

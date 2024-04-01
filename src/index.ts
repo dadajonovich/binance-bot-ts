@@ -2,6 +2,7 @@ import { config, pairs } from './config';
 import { BinanceRepository } from './repositories/binance';
 import { TelegramCycle } from './services/TelegramCycle';
 import { Graph } from './entities/Graph';
+import { storage } from './entities/Storage';
 
 console.log(config);
 
@@ -11,6 +12,8 @@ cycle.start();
 
 const run = async () => {
   console.log(await BinanceRepository.getBalances('USDT'));
+  const { free: balanceUsdt } = await BinanceRepository.getBalances('USDT');
+  storage.balanceUsdt = balanceUsdt;
   // console.log(await BinanceRepository.getPrice('DOGEUSDT'));
   // console.log(await BinanceRepository.getLotParams('DOGEUSDT'));
 
