@@ -18,8 +18,8 @@ export abstract class Repository<
     options: RequestInit = {},
   ): Promise<T> {
     try {
-      console.log(`${this.baseUrl}/${url}`);
       const query = toQuery(queryObject);
+      console.log(`${this.baseUrl}/${url}${query}`);
       const responce = (await fetch(`${this.baseUrl}/${url}${query}`, {
         ...this.defaultOptions,
         ...options,
@@ -27,7 +27,7 @@ export abstract class Repository<
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {
-      if (error instanceof Error) throw Error;
+      if (error instanceof Error) throw error;
 
       throw new Error('Unknown exception');
     }

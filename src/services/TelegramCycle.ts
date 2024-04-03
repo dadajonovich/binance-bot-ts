@@ -35,6 +35,7 @@ export class TelegramCycle {
             break;
 
           case '/orders':
+            await this.getOpenOrders(updateObject.message.chat.id);
             break;
 
           case '/cancel':
@@ -93,5 +94,10 @@ export class TelegramCycle {
     } else {
       await TelegramRepository.sendMessage(chatId, 'USDT < 10');
     }
+  }
+
+  private async getOpenOrders(chatId: number) {
+    const orders = await BinanceRepository.getOpenOrders();
+    console.log(orders);
   }
 }

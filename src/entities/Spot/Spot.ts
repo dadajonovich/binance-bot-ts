@@ -22,6 +22,7 @@ export class Spot {
             const graph = new Graph(pair, candles);
             if (graph.buySignal) {
               console.log(graph);
+
               const openOrders = await BinanceRepository.getOpenOrders();
 
               if (openOrders.length === 0) {
@@ -52,7 +53,11 @@ export class Spot {
                 );
                 await TelegramRepository.sendMessage(chatId, `Buy ${pair}`);
                 console.log(order);
+
+                // Написать обработку ошибки, в случае неудачного ордера
+                // Записать targetPair
               }
+              break;
             }
           }
         } catch (error) {

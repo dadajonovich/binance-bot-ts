@@ -3,19 +3,20 @@ import { Repository } from '../includes/Repository';
 import { Balance, Candle } from '../types';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/utils/toQuery';
+import { Order } from '../entities/Order';
 
 type BinanceError = {
   code: number;
   msg: string;
 };
 
-export type Order = {
-  symbol: Pair;
-  price: number;
-  side: 'SELL' | 'BUY';
-  type: 'LIMIT' | 'MARKET';
-  status: 'NEW' | 'PARTIALLY_FILLED';
-};
+// export type Order = {
+//   symbol: Pair;
+//   price: number;
+//   side: 'SELL' | 'BUY';
+//   type: 'LIMIT' | 'MARKET';
+//   status: 'NEW' | 'PARTIALLY_FILLED';
+// };
 
 export const BinanceRepository =
   new (class BinanceRepository extends Repository<object, BinanceError> {
@@ -153,9 +154,10 @@ export const BinanceRepository =
     }
 
     public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
-      return await this.protectedRequest<Order[]>('openOrders', {
+      const responce = await this.protectedRequest<Order[]>('openOrders', {
         symbol,
       });
+      return responce.map((order) => new Order(order));
     }
 
     public async getPrice(symbol: Pair): Promise<number> {
@@ -173,6 +175,7 @@ export const BinanceRepository =
       side: Order['side'],
       quantity: number,
       type: Order['type'] = 'LIMIT',
+      timeInForce = 'GTC',
     ): Promise<Order> {
       return await this.protectedRequest<Order>(
         'order',
@@ -182,6 +185,7 @@ export const BinanceRepository =
           side,
           quantity,
           type,
+          timeInForce,
         },
         { method: 'POST' },
       );
