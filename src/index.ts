@@ -4,6 +4,8 @@ import { TelegramCycle } from './services/TelegramCycle';
 import { Graph } from './entities/Graph';
 import { storage } from './entities/Storage';
 import { connect } from './db/sequelize';
+import { CronJob, CronTime } from 'cron';
+import { Order } from './entities/Order';
 
 console.log(config);
 
@@ -12,26 +14,8 @@ const cycle = new TelegramCycle();
 cycle.start();
 
 const run = async () => {
-  // await connect();
-  // console.log(await BinanceRepository.getPrice('DOGEUSDT'));
-  console.log(await BinanceRepository.getLotParams('BTCUSDT'));
-  // for (const pair of pairs) {
-  // const lotParams = await BinanceRepository.getLotParams(pair);
-  // console.log(lotParams);
-  // const openOrders = await BinanceRepository.getOpenOrders(pair);
-  // console.log(openOrders);
-  // const candles = await BinanceRepository.getCandles(pair);
-  // if (candles instanceof Error) {
-  //   console.log(candles.message);
-  //   continue;
-  // }
-  // const graph = new Graph(pair, candles);
-  // // console.log(graph);
-  // if (graph.buySignal) {
-  //   console.log(graph);
-  //   break;
-  // }
-  // }
+  // await BinanceRepository.createOrder('BTCUSDT', 100000.0, 'SELL', 0.5),
+  console.log(await BinanceRepository.cancelOrder('BTCUSDT', 74445));
 };
 
 run();

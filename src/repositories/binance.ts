@@ -190,4 +190,12 @@ export const BinanceRepository =
         { method: 'POST' },
       );
     }
+
+    public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
+      return await this.protectedRequest<Order>(
+        'order',
+        { symbol, orderId },
+        { method: 'DELETE' },
+      );
+    }
   })();

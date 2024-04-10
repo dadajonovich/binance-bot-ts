@@ -1,3 +1,6 @@
+import { Pair } from '../../config';
+import { BinanceRepository } from '../../repositories/binance';
+
 export type Candle = {
   open: number;
   high: number;
@@ -8,7 +11,7 @@ export type Candle = {
 export class Graph {
   private pair: string;
 
-  private candles: Candle[];
+  private klines: Candle[];
 
   private close: number[];
   private high: number[];
@@ -26,15 +29,20 @@ export class Graph {
   public buySignal: boolean;
   public sellSignal: boolean;
 
-  public constructor(pair: string, candles: Candle[]) {
+  public static async createByPair(pair: Pair) {
+    const klines = await BinanceRepository.getKlines(pair);
+    return new Graph(pair, klines);
+  }
+
+  public constructor(pair: Pair, klines: Candle[]) {
     this.pair = pair;
 
-    this.candles = candles;
+    this.klines = klines;
 
-    this.close = this.candles.map(({ close }) => close);
-    this.high = this.candles.map(({ high }) => high);
-    this.low = this.candles.map(({ low }) => low);
-    this.open = this.candles.map(({ open }) => open);
+    this.close = this.klines.map(({ close }) => close);
+    this.high = this.klines.map(({ high }) => high);
+    this.low = this.klines.map(({ low }) => low);
+    this.open = this.klines.map(({ open }) => open);
 
     this.kama = this.getKama(this.close, 10, 2, 30);
     // this.atr = this.getAtr(this.close, this.high, this.low, 10);

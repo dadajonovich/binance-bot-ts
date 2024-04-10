@@ -4,6 +4,8 @@ import { BinanceRepository } from '../../repositories/binance';
 import { Graph } from '../Graph';
 import { TelegramRepository } from '../../repositories/telegram';
 import { Pair, pairs } from '../../config';
+import { CronTime } from 'cron';
+import { Order } from '../Order';
 
 export class Spot {
   private chatId: number;
@@ -13,24 +15,28 @@ export class Spot {
   }
 
   public async start() {
-    const searchSignal = new CronJob(
+    const cronJob = new CronJob(
       // '0 15 0 * * *',
       '0 */1 * * * *',
 
       async () => {
         try {
-          if (storage.targetPair === null) {
-            const targetPair = await this.search(true);
-            if (targetPair) {
-              this.buy(targetPair);
-            }
+          const targetPair = storage.targetPair;
+          const isBuy = targetPair === null;
+
+          if (isBuy) {
+            const pairBySignal = await this.searchBuy();
+            if (!pairBySignal) return;
+
+            this.buy(pairBySignal);
+            cronJob.setTime(new CronTime('0 5 0 * * *'));
           } else {
-            this.sell('ADAUSDT');
+            this.sell(targetPair);
+            cronJob.setTime(new CronTime('0 15 0 * * *'));
           }
         } catch (error) {
           console.log(error instanceof Error ? error.message : error);
         }
-        searchSignal.stop();
       },
       null,
       null,
@@ -40,21 +46,13 @@ export class Spot {
       null,
       0,
     );
-    searchSignal.start();
+    cronJob.start();
   }
 
-  private getQuantityForOrder(quantityAsset: number, stepSize: number) {
-    const quantity = quantityAsset - (quantityAsset % stepSize);
-
-    return quantity;
-  }
-
-  private async search(isBuy: boolean) {
+  private async searchBuy(): Promise<Pair | null> {
     for (const pair of pairs) {
-      const candles = await BinanceRepository.getKlines(pair);
-
-      const graph = new Graph(pair, candles);
-      if (isBuy ? graph.buySignal : graph.sellSignal) {
+      const graph = await Graph.createByPair(pair);
+      if (graph.buySignal) {
         return pair;
       }
     }
@@ -76,10 +74,7 @@ export class Spot {
 
       const currentPrice = await BinanceRepository.getPrice(pair);
 
-      const quantity = this.getQuantityForOrder(
-        balanceUsdt / currentPrice,
-        stepSize,
-      );
+      const quantity = Order.getQuantity(balanceUsdt / currentPrice, stepSize);
 
       const order = await BinanceRepository.createOrder(
         pair,
@@ -102,7 +97,7 @@ export class Spot {
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const quantity = this.getQuantityForOrder(balance, stepSize);
+    const quantity = Order.getQuantity(balance, stepSize);
 
     const order = await BinanceRepository.createOrder(
       pair,
