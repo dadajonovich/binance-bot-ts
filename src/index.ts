@@ -3,6 +3,7 @@ import { BinanceRepository } from './repositories/binance';
 import { TelegramCycle } from './services/TelegramCycle';
 import { Graph } from './entities/Graph';
 import { storage } from './entities/Storage';
+import { connect } from './db/sequelize';
 
 console.log(config);
 
@@ -11,12 +12,9 @@ const cycle = new TelegramCycle();
 cycle.start();
 
 const run = async () => {
-  console.log(await BinanceRepository.getBalances('USDT'));
-  const { free: balanceUsdt } = await BinanceRepository.getBalances('USDT');
-  storage.balanceUsdt = balanceUsdt;
+  // await connect();
   // console.log(await BinanceRepository.getPrice('DOGEUSDT'));
-  // console.log(await BinanceRepository.getLotParams('DOGEUSDT'));
-
+  console.log(await BinanceRepository.getLotParams('BTCUSDT'));
   // for (const pair of pairs) {
   // const lotParams = await BinanceRepository.getLotParams(pair);
   // console.log(lotParams);

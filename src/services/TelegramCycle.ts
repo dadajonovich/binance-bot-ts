@@ -88,12 +88,8 @@ export class TelegramCycle {
   }
 
   private async commandStart(chatId: number) {
-    if (storage.balanceUsdt > 10) {
-      const trader = new Spot();
-      await trader.start(chatId);
-    } else {
-      await TelegramRepository.sendMessage(chatId, 'USDT < 10');
-    }
+    const trader = new Spot(chatId);
+    await trader.start();
   }
 
   private async getOpenOrders(chatId: number) {

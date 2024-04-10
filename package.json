@@ -27,6 +27,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "cron": "^3.1.6"
+    "cron": "^3.1.6",
+    "sequelize": "^6.37.2",
+    "sqlite3": "^5.1.7"
   }
 }
