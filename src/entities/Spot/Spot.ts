@@ -63,29 +63,18 @@ export class Spot {
     const openOrders = await BinanceRepository.getOpenOrders();
 
     if (openOrders.length === 0) {
-      const { free: balanceUsdt } = await BinanceRepository.getBalances('USDT');
+      const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
-      if (balanceUsdt < 11) {
-        await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
-        throw new Error('USDT < 10');
+      if (usdt > 10) {
+        storage.targetPair = pair;
+        const order = await Order.buy(pair, usdt);
+
+        await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
+        console.log(order);
       }
 
-      const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
-
-      const currentPrice = await BinanceRepository.getPrice(pair);
-
-      const quantity = Order.getQuantity(balanceUsdt / currentPrice, stepSize);
-
-      const order = await BinanceRepository.createOrder(
-        pair,
-        currentPrice,
-        'BUY',
-        quantity,
-      );
-
-      await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
-      console.log(order);
-      storage.targetPair = pair;
+      await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
+      throw new Error('USDT < 10');
     }
   }
 
@@ -105,8 +94,9 @@ export class Spot {
       'SELL',
       quantity,
     );
-    await TelegramRepository.sendMessage(this.chatId, `Sell ${pair}`);
-    console.log(order);
     storage.targetPair = null;
+
+    await TelegramRepository.sendMessage(this.chatId, `Sell ${pair}`);
+    // console.log(order);
   }
 }

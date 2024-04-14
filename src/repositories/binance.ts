@@ -198,4 +198,13 @@ export const BinanceRepository =
         { method: 'DELETE' },
       );
     }
+
+    public async getOrder(symbol: Pair, orderId: number): Promise<Order> {
+      const [order] = await this.protectedRequest<Order[]>('allOrders', {
+        symbol,
+        orderId,
+      });
+      if (!order) throw new Error('Not found order');
+      return new Order(order);
+    }
   })();

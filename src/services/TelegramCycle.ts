@@ -88,6 +88,7 @@ export class TelegramCycle {
   }
 
   private async commandStart(chatId: number) {
+    await TelegramRepository.sendMessage(chatId, 'Bot starting!');
     const trader = new Spot(chatId);
     await trader.start();
   }
