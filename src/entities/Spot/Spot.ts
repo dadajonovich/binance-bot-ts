@@ -1,4 +1,4 @@
-import { CronJob } from 'cron/dist/job';
+import { CronJob } from 'cron';
 import { storage } from '../Storage';
 import { BinanceRepository } from '../../repositories/binance';
 import { Graph } from '../Graph';
@@ -15,9 +15,15 @@ export class Spot {
   }
 
   public async start() {
+    // const buyTime = '0 */1 * * * *';
+    const buyTime = '*/5 * * * * *';
+
+    // const sellTime = '30 */1 * * * *';
+    const sellTime = '*/5 * * * * *';
+
     const cronJob = new CronJob(
       // '0 15 0 * * *',
-      '0 */1 * * * *',
+      buyTime,
 
       async () => {
         try {
@@ -25,14 +31,15 @@ export class Spot {
           const isBuy = targetPair === null;
 
           if (isBuy) {
+            cronJob.setTime(new CronTime(buyTime));
             const pairBySignal = await this.searchBuy();
             if (!pairBySignal) return;
 
             this.buy(pairBySignal);
-            cronJob.setTime(new CronTime('0 5 0 * * *'));
+            // cronJob.setTime(new CronTime('0 5 0 * * *'));
           } else {
+            cronJob.setTime(new CronTime(sellTime));
             this.sell(targetPair);
-            cronJob.setTime(new CronTime('0 15 0 * * *'));
           }
         } catch (error) {
           console.log(error instanceof Error ? error.message : error);
@@ -75,28 +82,18 @@ export class Spot {
 
       await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
       throw new Error('USDT < 10');
-    }
+    } else console.log('Есть открытые ордера!');
   }
 
   private async sell(pair: Pair) {
-    const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
     const { free: balance } = await BinanceRepository.getBalances(
       pair.replace('USDT', ''),
     );
 
-    const currentPrice = await BinanceRepository.getPrice(pair);
+    const order = await Order.sell(pair, balance);
 
-    const quantity = Order.getQuantity(balance, stepSize);
-
-    const order = await BinanceRepository.createOrder(
-      pair,
-      currentPrice,
-      'SELL',
-      quantity,
-    );
     storage.targetPair = null;
-
-    await TelegramRepository.sendMessage(this.chatId, `Sell ${pair}`);
-    // console.log(order);
+    await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
+    console.log(order);
   }
 }

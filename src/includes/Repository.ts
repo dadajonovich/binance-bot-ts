@@ -19,11 +19,12 @@ export abstract class Repository<
   ): Promise<T> {
     try {
       const query = toQuery(queryObject);
-      console.log(`${this.baseUrl}/${url}${query}`);
+
       const responce = (await fetch(`${this.baseUrl}/${url}${query}`, {
         ...this.defaultOptions,
         ...options,
       }).then((responce) => responce.json())) as T | ErrorObject;
+      console.log(`${this.baseUrl}/${url}${query}`);
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {

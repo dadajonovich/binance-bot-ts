@@ -54,7 +54,7 @@ export class Order implements OrderProps {
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const quantity = Order.getQuantity(usdt / currentPrice, stepSize);
+    const quantity = Order.getQuantity(100 / currentPrice, stepSize);
 
     const order = await BinanceRepository.createOrder(
       pair,
@@ -63,7 +63,7 @@ export class Order implements OrderProps {
       quantity,
     );
 
-    await sleep(1000 * 60 * 5);
+    await sleep(1000 * 60 * 0.25);
 
     order.set(await BinanceRepository.getOrder(order.symbol, order.orderId));
 
@@ -74,10 +74,43 @@ export class Order implements OrderProps {
     return Order.buy(order.symbol, usdt - order.cummulativeQuoteQty);
   }
 
-  public static getQuantity(quantityAsset: number, stepSize: number) {
+  public static async sell(pair: Pair, asset: number): Promise<Order | null> {
+    const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+
+    if (stepSize >= asset) {
+      return null;
+    }
+
+    const currentPrice = await BinanceRepository.getPrice(pair);
+
+    const quantity = Order.getQuantity(asset, stepSize);
+
+    const order = await BinanceRepository.createOrder(
+      pair,
+      currentPrice,
+      'SELL',
+      quantity,
+    );
+
+    await sleep(1000 * 60 * 0.25);
+
+    order.set(await BinanceRepository.getOrder(order.symbol, order.orderId));
+
+    if (order.status !== 'NEW' && order.status !== 'PARTIALLY_FILLED') {
+      return order;
+    }
+    order.set(await BinanceRepository.cancelOrder(order.symbol, order.orderId));
+    return Order.sell(order.symbol, asset - order.executedQty);
+  }
+
+  public static getQuantity(quantityAsset: number, stepSize: number): number {
     const quantity = quantityAsset - (quantityAsset % stepSize);
 
-    return quantity;
+    const fixedQuantity = quantity.toFixed(
+      stepSize.toString().replaceAll(/[^0]/gim, '').length,
+    );
+    console.log(quantityAsset, stepSize, quantity, fixedQuantity);
+    return Number(fixedQuantity);
   }
 
   private set(order: Order | OrderProps) {

@@ -99,7 +99,7 @@ export const BinanceRepository =
         // `klines?interval=1d&limit=35&symbol=${symbol}`,
         // `klines?interval=15m&limit=35&symbol=${symbol}`,
         `klines`,
-        { interval: '1m', limit: 35, symbol },
+        { interval: '1s', limit: 35, symbol },
       );
 
       return responce.map(([, open, high, low, close]) => ({
