@@ -24,7 +24,7 @@ export abstract class Repository<
         ...this.defaultOptions,
         ...options,
       }).then((responce) => responce.json())) as T | ErrorObject;
-      console.log(`${this.baseUrl}/${url}${query}`);
+      // console.log(`${this.baseUrl}/${url}${query}`, responce);
       if (this.errorHandler(responce)) return responce;
       throw new Error('Unhandled exception');
     } catch (error) {

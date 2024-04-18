@@ -16,44 +16,55 @@ export class Spot {
 
   public async start() {
     // const buyTime = '0 */1 * * * *';
-    const buyTime = '*/5 * * * * *';
+    const buyTime = '*/15 * * * * *';
 
     // const sellTime = '30 */1 * * * *';
-    const sellTime = '*/5 * * * * *';
+    const sellTime = '*/15 * * * * *';
 
     const cronJob = new CronJob(
       // '0 15 0 * * *',
       buyTime,
 
       async () => {
+        console.log('Cron stop');
+        cronJob.stop();
         try {
           const targetPair = storage.targetPair;
           const isBuy = targetPair === null;
 
           if (isBuy) {
             cronJob.setTime(new CronTime(buyTime));
+            console.log('Spot buy');
             const pairBySignal = await this.searchBuy();
-            if (!pairBySignal) return;
-
-            this.buy(pairBySignal);
-            // cronJob.setTime(new CronTime('0 5 0 * * *'));
+            if (pairBySignal) {
+              await this.buy(pairBySignal);
+              storage.targetPair = pairBySignal;
+              // cronJob.setTime(new CronTime('0 5 0 * * *'));
+            }
           } else {
+            console.log('Spot sell');
             cronJob.setTime(new CronTime(sellTime));
-            this.sell(targetPair);
+
+            const pairBySignal = await this.searchSell(targetPair);
+            if (pairBySignal) {
+              await this.sell(pairBySignal);
+              storage.targetPair = null;
+            }
           }
+          cronJob.start();
+          console.log('Cron start');
         } catch (error) {
-          console.log(error instanceof Error ? error.message : error);
+          console.log(error);
         }
       },
       null,
-      null,
+      true,
       null,
       null,
       // true,
       null,
       0,
     );
-    cronJob.start();
   }
 
   private async searchBuy(): Promise<Pair | null> {
@@ -66,6 +77,15 @@ export class Spot {
     return null;
   }
 
+  private async searchSell(pair: Pair): Promise<Pair | null> {
+    const graph = await Graph.createByPair(pair);
+    if (graph.sellSignal) {
+      return pair;
+    }
+
+    return null;
+  }
+
   private async buy(pair: Pair) {
     const openOrders = await BinanceRepository.getOpenOrders();
 
@@ -73,15 +93,14 @@ export class Spot {
       const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
       if (usdt > 10) {
-        storage.targetPair = pair;
         const order = await Order.buy(pair, usdt);
 
         await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
         console.log(order);
+      } else {
+        await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
+        throw new Error('USDT < 10');
       }
-
-      await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
-      throw new Error('USDT < 10');
     } else console.log('Есть открытые ордера!');
   }
 
@@ -92,7 +111,6 @@ export class Spot {
 
     const order = await Order.sell(pair, balance);
 
-    storage.targetPair = null;
     await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
     console.log(order);
   }

@@ -3,7 +3,7 @@ import { Repository } from '../includes/Repository';
 import { Balance, Candle } from '../types';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/utils/toQuery';
-import { Order } from '../entities/Order';
+import { Order, OrderProps } from '../entities/Order';
 
 type BinanceError = {
   code: number;
@@ -177,30 +177,34 @@ export const BinanceRepository =
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
     ): Promise<Order> {
-      return await this.protectedRequest<Order>(
-        'order',
-        {
-          symbol,
-          price,
-          side,
-          quantity,
-          type,
-          timeInForce,
-        },
-        { method: 'POST' },
+      return new Order(
+        await this.protectedRequest<OrderProps>(
+          'order',
+          {
+            symbol,
+            price,
+            side,
+            quantity,
+            type,
+            timeInForce,
+          },
+          { method: 'POST' },
+        ),
       );
     }
 
     public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
-      return await this.protectedRequest<Order>(
-        'order',
-        { symbol, orderId },
-        { method: 'DELETE' },
+      return new Order(
+        await this.protectedRequest<OrderProps>(
+          'order',
+          { symbol, orderId },
+          { method: 'DELETE' },
+        ),
       );
     }
 
     public async getOrder(symbol: Pair, orderId: number): Promise<Order> {
-      const [order] = await this.protectedRequest<Order[]>('allOrders', {
+      const [order] = await this.protectedRequest<OrderProps[]>('allOrders', {
         symbol,
         orderId,
       });

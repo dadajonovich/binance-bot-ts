@@ -50,6 +50,7 @@ export class Order implements OrderProps {
   }
 
   public static async buy(pair: Pair, usdt: number): Promise<Order> {
+    console.log('Order buy!');
     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
     const currentPrice = await BinanceRepository.getPrice(pair);
@@ -62,11 +63,12 @@ export class Order implements OrderProps {
       'BUY',
       quantity,
     );
+    console.log(1, order);
 
     await sleep(1000 * 60 * 0.25);
 
     order.set(await BinanceRepository.getOrder(order.symbol, order.orderId));
-
+    console.log(2, order);
     if (order.status !== 'NEW' && order.status !== 'PARTIALLY_FILLED') {
       return order;
     }
@@ -75,6 +77,7 @@ export class Order implements OrderProps {
   }
 
   public static async sell(pair: Pair, asset: number): Promise<Order | null> {
+    console.log('Order sell!');
     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
     if (stepSize >= asset) {
@@ -91,26 +94,33 @@ export class Order implements OrderProps {
       'SELL',
       quantity,
     );
+    console.log(1, order);
 
     await sleep(1000 * 60 * 0.25);
 
     order.set(await BinanceRepository.getOrder(order.symbol, order.orderId));
+    console.log(2, order);
 
     if (order.status !== 'NEW' && order.status !== 'PARTIALLY_FILLED') {
       return order;
     }
     order.set(await BinanceRepository.cancelOrder(order.symbol, order.orderId));
+    console.log(3, order);
     return Order.sell(order.symbol, asset - order.executedQty);
   }
 
   public static getQuantity(quantityAsset: number, stepSize: number): number {
-    const quantity = quantityAsset - (quantityAsset % stepSize);
+    const [integer, decimal] = String(quantityAsset).split('.');
+    if (decimal === undefined) return Number(integer);
 
-    const fixedQuantity = quantity.toFixed(
-      stepSize.toString().replaceAll(/[^0]/gim, '').length,
-    );
-    console.log(quantityAsset, stepSize, quantity, fixedQuantity);
-    return Number(fixedQuantity);
+    const length = stepSize.toString().replaceAll(/[^0]/gim, '').length;
+
+    const quantityDecimal = decimal.slice(0, length);
+
+    const quantity = [integer, quantityDecimal].filter((str) => str).join('.');
+
+    console.log(quantityAsset, stepSize, quantity);
+    return Number(quantity);
   }
 
   private set(order: Order | OrderProps) {

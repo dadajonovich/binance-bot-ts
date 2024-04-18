@@ -54,9 +54,8 @@ export class Graph {
     this.buySignal =
       this.buySignalKaufman(this.kama, this.filterKama) && this.hv.at(-2)! < 40;
 
-    this.sellSignal =
-      this.sellSignalKaufman(this.kama, this.filterKama) &&
-      this.hv.at(-2)! > 55;
+    this.sellSignal = this.sellSignalKaufman(this.kama, this.filterKama);
+    // this.hv.at(-2)! > 55;
   }
 
   private getKama(data: number[], len1 = 10, len2 = 2, len3 = 30): number[] {
