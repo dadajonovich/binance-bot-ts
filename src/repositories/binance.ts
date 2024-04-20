@@ -1,22 +1,15 @@
-import { Pair, binanceUrl, config, pairs } from '../config';
+import { Pair, binanceUrl, config } from '../config';
 import { Repository } from '../includes/Repository';
-import { Balance, Candle } from '../types';
+import { Balance } from '../types';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/utils/toQuery';
 import { Order, OrderProps } from '../entities/Order';
+import { Kline } from '../entities/Kline';
 
 type BinanceError = {
   code: number;
   msg: string;
 };
-
-// export type Order = {
-//   symbol: Pair;
-//   price: number;
-//   side: 'SELL' | 'BUY';
-//   type: 'LIMIT' | 'MARKET';
-//   status: 'NEW' | 'PARTIALLY_FILLED';
-// };
 
 export const BinanceRepository =
   new (class BinanceRepository extends Repository<object, BinanceError> {
@@ -94,7 +87,7 @@ export const BinanceRepository =
       }));
     }
 
-    public async getKlines(symbol: Pair): Promise<Candle[]> {
+    public async getKlines(symbol: Pair): Promise<Kline[]> {
       const responce = await this.request<string[][]>(
         // `klines?interval=1d&limit=35&symbol=${symbol}`,
         // `klines?interval=15m&limit=35&symbol=${symbol}`,

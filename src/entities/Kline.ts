@@ -1,4 +1,4 @@
-export type Candle = {
+export type Kline = {
   open: number;
   high: number;
   low: number;

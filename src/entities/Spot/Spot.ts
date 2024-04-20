@@ -32,25 +32,10 @@ export class Spot {
           const targetPair = storage.targetPair;
           const isBuy = targetPair === null;
 
-          if (isBuy) {
-            cronJob.setTime(new CronTime(buyTime));
-            console.log('Spot buy');
-            const pairBySignal = await this.searchBuy();
-            if (pairBySignal) {
-              await this.buy(pairBySignal);
-              storage.targetPair = pairBySignal;
-              // cronJob.setTime(new CronTime('0 5 0 * * *'));
-            }
-          } else {
-            console.log('Spot sell');
-            cronJob.setTime(new CronTime(sellTime));
+          cronJob.setTime(new CronTime(isBuy ? buyTime : sellTime));
+          const pairForAction = await this.toPairForAction(targetPair);
+          if (pairForAction) await this.action(pairForAction, isBuy);
 
-            const pairBySignal = await this.searchSell(targetPair);
-            if (pairBySignal) {
-              await this.sell(pairBySignal);
-              storage.targetPair = null;
-            }
-          }
           cronJob.start();
           console.log('Cron start');
         } catch (error) {
@@ -67,6 +52,34 @@ export class Spot {
     );
   }
 
+  private async action(pair: Pair, isBuy: boolean) {
+    if (isBuy) {
+      console.log('Spot buy');
+      await this.buy(pair);
+      storage.targetPair = pair;
+    } else {
+      console.log('Spot sell');
+      await this.sell(pair);
+      storage.targetPair = null;
+    }
+
+    await TelegramRepository.sendMessage(
+      this.chatId,
+      `${isBuy ? 'Buy' : 'Sell'} ${pair}`,
+    );
+  }
+
+  private async toPairForAction(pair: Pair | null): Promise<Pair | null> {
+    if (!pair) {
+      const pairBySignal = await this.searchBuy();
+      return pairBySignal;
+    } else {
+      const sellSignal = await this.toSellSignal(pair);
+
+      return sellSignal ? pair : null;
+    }
+  }
+
   private async searchBuy(): Promise<Pair | null> {
     for (const pair of pairs) {
       const graph = await Graph.createByPair(pair);
@@ -77,13 +90,13 @@ export class Spot {
     return null;
   }
 
-  private async searchSell(pair: Pair): Promise<Pair | null> {
+  private async toSellSignal(pair: Pair): Promise<boolean> {
     const graph = await Graph.createByPair(pair);
     if (graph.sellSignal) {
-      return pair;
+      return true;
     }
 
-    return null;
+    return false;
   }
 
   private async buy(pair: Pair) {
@@ -95,7 +108,6 @@ export class Spot {
       if (usdt > 10) {
         const order = await Order.buy(pair, usdt);
 
-        await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
         console.log(order);
       } else {
         await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
@@ -111,7 +123,6 @@ export class Spot {
 
     const order = await Order.sell(pair, balance);
 
-    await TelegramRepository.sendMessage(this.chatId, `Buy ${pair}`);
     console.log(order);
   }
 }

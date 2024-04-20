@@ -1,17 +1,11 @@
 import { Pair } from '../../config';
 import { BinanceRepository } from '../../repositories/binance';
-
-export type Candle = {
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-};
+import { Kline } from '../Kline';
 
 export class Graph {
   private pair: string;
 
-  private klines: Candle[];
+  private klines: Kline[];
 
   private close: number[];
   private high: number[];
@@ -34,7 +28,7 @@ export class Graph {
     return new Graph(pair, klines);
   }
 
-  public constructor(pair: Pair, klines: Candle[]) {
+  public constructor(pair: Pair, klines: Kline[]) {
     this.pair = pair;
 
     this.klines = klines;
@@ -45,8 +39,9 @@ export class Graph {
     this.open = this.klines.map(({ open }) => open);
 
     this.kama = this.getKama(this.close, 10, 2, 30);
-    // this.atr = this.getAtr(this.close, this.high, this.low, 10);
     this.filterKama = this.getFilter(this.kama);
+
+    // this.atr = this.getAtr(this.close, this.high, this.low, 10);
     // this.filterAtr = this.getFilter(this.atr);
 
     this.hv = this.getHistoricalVolatility(this.close);
@@ -54,8 +49,9 @@ export class Graph {
     this.buySignal =
       this.buySignalKaufman(this.kama, this.filterKama) && this.hv.at(-2)! < 40;
 
-    this.sellSignal = this.sellSignalKaufman(this.kama, this.filterKama);
-    // this.hv.at(-2)! > 55;
+    this.sellSignal = true;
+    //  this.sellSignalKaufman(this.kama, this.filterKama) ||
+    // this.hv.at(-2)! > 50;
   }
 
   private getKama(data: number[], len1 = 10, len2 = 2, len3 = 30): number[] {
