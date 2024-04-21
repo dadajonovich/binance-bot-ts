@@ -86,27 +86,33 @@ export class OrderService {
 
     const quantity = this.getQuantity(100 / currentPrice, stepSize);
 
-    const order = await OrderService.create(
+    const newOrder = await OrderService.create(
       pair,
       currentPrice,
       'BUY',
       quantity,
     );
+
+    const order = await this.repeat(newOrder);
+    if (this.isFilled(order)) return order;
+
+    return await this.buy(order.symbol, 100 - order.cummulativeQuoteQty);
+  }
+
+  private static isFilled(order: Order): boolean {
+    return order.status !== 'NEW' && order.status !== 'PARTIALLY_FILLED';
+  }
+
+  private static async repeat(order: Order): Promise<Order> {
+    if (this.isFilled(order)) return order;
     await sleep(1000 * 60 * 0.25);
 
     const currentOrder = await OrderService.get(order.orderId);
 
-    if (
-      currentOrder.status !== 'NEW' &&
-      currentOrder.status !== 'PARTIALLY_FILLED'
-    ) {
+    if (this.isFilled(currentOrder)) {
       return currentOrder;
     }
-    const canceledOrder = await OrderService.cancel(currentOrder.orderId);
-    return await this.buy(
-      canceledOrder.symbol,
-      100 - canceledOrder.cummulativeQuoteQty,
-    );
+    return await OrderService.cancel(currentOrder.orderId);
   }
 
   public static async sell(pair: Pair, asset: number): Promise<Order> {
@@ -124,25 +130,17 @@ export class OrderService {
 
     const quantity = this.getQuantity(asset, stepSize);
 
-    const order = await OrderService.create(
+    const newOrder = await OrderService.create(
       pair,
       currentPrice,
       'SELL',
       quantity,
     );
 
-    await sleep(1000 * 60 * 0.25);
+    const order = await this.repeat(newOrder);
+    if (this.isFilled(order)) return order;
 
-    const currentOrder = await this.get(order.orderId);
-
-    if (
-      currentOrder.status !== 'NEW' &&
-      currentOrder.status !== 'PARTIALLY_FILLED'
-    ) {
-      return currentOrder;
-    }
-    const cancelOrder = await OrderService.cancel(currentOrder.orderId);
-    return await this.sell(cancelOrder.symbol, asset - cancelOrder.executedQty);
+    return await this.sell(order.symbol, asset - order.executedQty);
   }
 
   private static getQuantity(quantityAsset: number, stepSize: number): number {
