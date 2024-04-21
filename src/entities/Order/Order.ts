@@ -6,23 +6,25 @@ import { BinanceRepository } from '../../repositories/binance';
 export type OrderProps = {
   symbol: Pair;
   orderId: number;
-  price: number;
+  price: string;
   side: 'SELL' | 'BUY';
   type: 'LIMIT' | 'MARKET';
   status: 'NEW' | 'PARTIALLY_FILLED' | 'CACANCELED';
-  executedQty: number;
-  cummulativeQuoteQty: number;
+  origQty: string;
+  executedQty: string;
+  cummulativeQuoteQty: string;
 };
 
-export class Order implements OrderProps {
-  public symbol;
-  public orderId;
-  public status;
-  public type;
-  public side;
-  public price;
-  public executedQty;
-  public cummulativeQuoteQty;
+export class Order {
+  public symbol: Pair;
+  public orderId: number;
+  public price: number;
+  public side: 'SELL' | 'BUY';
+  public type: 'LIMIT' | 'MARKET';
+  public status: 'NEW' | 'PARTIALLY_FILLED' | 'CACANCELED';
+  public origQty: number;
+  public executedQty: number;
+  public cummulativeQuoteQty: number;
 
   public constructor(
     {
@@ -32,9 +34,10 @@ export class Order implements OrderProps {
       status,
       type,
       side,
+      origQty,
       executedQty,
       cummulativeQuoteQty,
-    }: OrderProps,
+    }: OrderProps | Order,
     // order: OrderProps,
   ) {
     // Object.entries(order).forEach(([key, value]) => {
@@ -45,9 +48,10 @@ export class Order implements OrderProps {
     this.status = status;
     this.type = type;
     this.side = side;
-    this.price = price;
-    this.executedQty = executedQty;
-    this.cummulativeQuoteQty = cummulativeQuoteQty;
+    this.price = Number(price);
+    this.origQty = Number(origQty);
+    this.executedQty = Number(executedQty);
+    this.cummulativeQuoteQty = Number(cummulativeQuoteQty);
   }
 
   public static async buy(pair: Pair, usdt: number): Promise<Order> {
@@ -123,14 +127,26 @@ export class Order implements OrderProps {
   }
 
   private set(order: Order | OrderProps) {
-    const { symbol, orderId, price, status, type, side, executedQty } = order;
+    const {
+      symbol,
+      orderId,
+      price,
+      // origQty,
+      cummulativeQuoteQty,
+      status,
+      type,
+      side,
+      executedQty,
+    } = order;
 
     this.symbol = symbol;
     this.orderId = orderId;
     this.status = status;
     this.type = type;
     this.side = side;
-    this.price = price;
-    this.executedQty = executedQty;
+    this.price = Number(price);
+    // this.origQty = Number(origQty);
+    this.executedQty = Number(executedQty);
+    this.cummulativeQuoteQty = Number(cummulativeQuoteQty);
   }
 }

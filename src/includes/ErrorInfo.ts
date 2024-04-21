@@ -1,5 +1,3 @@
-import { start } from 'repl';
-
 export class ErrorInfo extends Error {
   public info: any;
 
@@ -11,6 +9,7 @@ export class ErrorInfo extends Error {
   ) {
     super(`${sender} ${message}`);
     this.info = info;
+    this.stack = stack || this.stack;
   }
 
   public static create(error: unknown): ErrorInfo {

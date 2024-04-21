@@ -64,14 +64,14 @@ export class Spot {
       storage.targetPair = null;
     }
 
-    const price = new Intl.NumberFormat('ru-RU', {
+    const quantity = new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'USD',
-    }).format(order.price);
+    }).format(order.origQty * order.price);
 
     await TelegramRepository.sendMessage(
       this.chatId,
-      `${order.side} ${price} ${pair} `,
+      `${order.side} ${quantity} ${pair} `,
     );
   }
 
