@@ -6,6 +6,7 @@ import { Graph } from '../entities/Graph';
 import { sleep } from '../includes/utils/sleep';
 import { Spot } from '../entities/Spot';
 import { storage } from '../entities/Storage';
+import { OrderService } from '../entities/Order/OrderService';
 
 export class TelegramCycle {
   public async start() {
@@ -94,7 +95,7 @@ export class TelegramCycle {
   }
 
   private async getOpenOrders(chatId: number) {
-    const orders = await BinanceRepository.getOpenOrders();
+    const orders = await OrderService.getOpen();
     console.log(orders);
   }
 }

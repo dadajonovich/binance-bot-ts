@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/utils/toQuery';
 import { Order, OrderProps } from '../entities/Order';
 import { Kline } from '../entities/Kline';
+import { ErrorInfo } from '../includes/ErrorInfo';
 
 type BinanceError = {
   code: number;
@@ -49,8 +50,6 @@ export const BinanceRepository =
       const signature = createHmac('sha256', config.BINANCE_SECRET_KEY)
         .update(queryForHmac)
         .digest('hex');
-
-      // const query = toQuery({ ...queryObjectForHmac, signature });
 
       const responce = await this.request<T>(
         url,
@@ -150,12 +149,12 @@ export const BinanceRepository =
       throw new Error('Filter not found');
     }
 
-    public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
-      const responce = await this.protectedRequest<Order[]>('openOrders', {
-        symbol,
-      });
-      return responce.map((order) => new Order(order));
-    }
+    // public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
+    //   const responce = await this.protectedRequest<OrderProps[]>('openOrders', {
+    //     symbol,
+    //   });
+    //   return responce.map((order) => new Order(order));
+    // }
 
     public async getPrice(symbol: Pair): Promise<number> {
       type TickerPrice = { symbol: string; price: string };
@@ -173,39 +172,43 @@ export const BinanceRepository =
       quantity: number,
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
-    ): Promise<Order> {
-      return new Order(
-        await this.protectedRequest<OrderProps>(
-          'order',
-          {
-            symbol,
-            price,
-            side,
-            quantity,
-            type,
-            timeInForce,
-          },
-          { method: 'POST' },
-        ),
+    ): Promise<OrderProps> {
+      return await this.protectedRequest<OrderProps>(
+        'order',
+        {
+          symbol,
+          price,
+          side,
+          quantity,
+          type,
+          timeInForce,
+        },
+        { method: 'POST' },
       );
     }
 
-    public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
-      return new Order(
-        await this.protectedRequest<OrderProps>(
-          'order',
-          { symbol, orderId },
-          { method: 'DELETE' },
-        ),
+    public async cancelOrder(
+      symbol: Pair,
+      orderId: number,
+    ): Promise<OrderProps> {
+      return await this.protectedRequest<OrderProps>(
+        'order',
+        { symbol, orderId },
+        { method: 'DELETE' },
       );
     }
 
-    public async getOrder(symbol: Pair, orderId: number): Promise<Order> {
+    public async getOrder(symbol: Pair, orderId: number): Promise<OrderProps> {
       const [order] = await this.protectedRequest<OrderProps[]>('allOrders', {
         symbol,
         orderId,
       });
-      if (!order) throw new Error('Not found order');
-      return new Order(order);
+      if (!order)
+        throw new ErrorInfo(
+          'BinanceRepository.getOrder',
+          'Запрашиваемый ордер отсутствует в Binance',
+          { orderId },
+        );
+      return order;
     }
   })();

@@ -1,5 +1,5 @@
 import { CronJob } from 'cron';
-import { storage } from '../Storage';
+// import { storage } from '../Storage';
 import { BinanceRepository } from '../../repositories/binance';
 import { Graph } from '../Graph';
 import { TelegramRepository } from '../../repositories/telegram';
@@ -7,6 +7,7 @@ import { Pair, pairs } from '../../config';
 import { CronTime } from 'cron';
 import { Order } from '../Order';
 import { ErrorInfo } from '../../includes/ErrorInfo';
+import { OrderService } from '../Order/OrderService';
 
 export class Spot {
   private chatId: number;
@@ -27,11 +28,13 @@ export class Spot {
         console.log('Cron stop');
         cronJob.stop();
         try {
-          const targetPair = storage.targetPair;
-          const isBuy = targetPair === null;
+          const lastOrder = await OrderService.getLast();
+          const isBuy = this.isBuy(lastOrder);
 
           cronJob.setTime(new CronTime(isBuy ? buyTime : sellTime));
-          const pairForAction = await this.toPairForAction(targetPair);
+          const pairForAction = await this.toPairForAction(
+            lastOrder?.symbol || null,
+          );
           if (pairForAction) await this.action(pairForAction, isBuy);
 
           cronJob.start();
@@ -51,17 +54,31 @@ export class Spot {
     );
   }
 
+  private isBuy(lastOrder: Order | null): boolean {
+    const isNull = lastOrder === null;
+
+    if (isNull) return true;
+
+    const isPartiallyFilled = lastOrder.status === 'PARTIALLY_FILLED';
+
+    const isSideBuy = lastOrder.side === 'BUY';
+    const isNew = lastOrder.status === 'NEW';
+
+    if (isSideBuy && (isPartiallyFilled || isNew)) return true;
+    if (!isSideBuy && (!isPartiallyFilled || !isNew)) return true;
+
+    return false;
+  }
+
   private async action(pair: Pair, isBuy: boolean) {
     let order;
 
     if (isBuy) {
       console.log('Spot buy');
       order = await this.buy(pair);
-      storage.targetPair = pair;
     } else {
       console.log('Spot sell');
       order = await this.sell(pair);
-      storage.targetPair = null;
     }
 
     const quantity = new Intl.NumberFormat('ru-RU', {
@@ -106,21 +123,14 @@ export class Spot {
   }
 
   private async buy(pair: Pair): Promise<Order> {
-    const openOrders = await BinanceRepository.getOpenOrders();
+    const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
-    if (openOrders.length === 0) {
-      const { free: usdt } = await BinanceRepository.getBalances('USDT');
-
-      if (usdt > 10) {
-        const order = await Order.buy(pair, usdt);
-        return order;
-      } else {
-        throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
-      }
-    } else
-      throw new ErrorInfo('Spot.buy', 'Есть открытые ордера', {
-        openOrders: openOrders,
-      });
+    if (usdt > 10) {
+      const order = await OrderService.buy(pair, usdt);
+      return order;
+    } else {
+      throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
+    }
   }
 
   private async sell(pair: Pair): Promise<Order> {
@@ -128,7 +138,7 @@ export class Spot {
       pair.replace('USDT', ''),
     );
 
-    const order = await Order.sell(pair, balance);
+    const order = await OrderService.sell(pair, balance);
 
     return order;
   }
