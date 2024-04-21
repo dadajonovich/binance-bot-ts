@@ -6,6 +6,7 @@ import { TelegramRepository } from '../../repositories/telegram';
 import { Pair, pairs } from '../../config';
 import { CronTime } from 'cron';
 import { Order } from '../Order';
+import { ErrorInfo } from '../../includes/ErrorInfo';
 
 export class Spot {
   private chatId: number;
@@ -15,14 +16,11 @@ export class Spot {
   }
 
   public async start() {
-    // const buyTime = '0 */1 * * * *';
     const buyTime = '*/15 * * * * *';
 
-    // const sellTime = '30 */1 * * * *';
     const sellTime = '*/15 * * * * *';
 
     const cronJob = new CronJob(
-      // '0 15 0 * * *',
       buyTime,
 
       async () => {
@@ -38,34 +36,42 @@ export class Spot {
 
           cronJob.start();
           console.log('Cron start');
-        } catch (error) {
+        } catch (e) {
+          const error = ErrorInfo.create(e);
           console.log(error);
+          await TelegramRepository.sendMessage(this.chatId, error.message);
         }
       },
       null,
       true,
       null,
       null,
-      // true,
       null,
       0,
     );
   }
 
   private async action(pair: Pair, isBuy: boolean) {
+    let order;
+
     if (isBuy) {
       console.log('Spot buy');
-      await this.buy(pair);
+      order = await this.buy(pair);
       storage.targetPair = pair;
     } else {
       console.log('Spot sell');
-      await this.sell(pair);
+      order = await this.sell(pair);
       storage.targetPair = null;
     }
 
+    const price = new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(order.price);
+
     await TelegramRepository.sendMessage(
       this.chatId,
-      `${isBuy ? 'Buy' : 'Sell'} ${pair}`,
+      `${order.side} ${price} ${pair} `,
     );
   }
 
@@ -99,7 +105,7 @@ export class Spot {
     return false;
   }
 
-  private async buy(pair: Pair) {
+  private async buy(pair: Pair): Promise<Order> {
     const openOrders = await BinanceRepository.getOpenOrders();
 
     if (openOrders.length === 0) {
@@ -107,22 +113,23 @@ export class Spot {
 
       if (usdt > 10) {
         const order = await Order.buy(pair, usdt);
-
-        console.log(order);
+        return order;
       } else {
-        await TelegramRepository.sendMessage(this.chatId, 'USDT < 10');
-        throw new Error('USDT < 10');
+        throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
       }
-    } else console.log('Есть открытые ордера!');
+    } else
+      throw new ErrorInfo('Spot.buy', 'Есть открытые ордера', {
+        openOrders: openOrders,
+      });
   }
 
-  private async sell(pair: Pair) {
+  private async sell(pair: Pair): Promise<Order> {
     const { free: balance } = await BinanceRepository.getBalances(
       pair.replace('USDT', ''),
     );
 
     const order = await Order.sell(pair, balance);
 
-    console.log(order);
+    return order;
   }
 }

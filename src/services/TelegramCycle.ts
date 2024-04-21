@@ -13,7 +13,7 @@ export class TelegramCycle {
       try {
         await this.run();
       } catch (error) {
-        console.log(error instanceof Error ? error.message : error);
+        console.log(error);
       }
       await sleep(1000);
     }
@@ -82,13 +82,13 @@ export class TelegramCycle {
     const message =
       strongCoins.length > 0
         ? strongCoins.map((pair) => `\n${pair}`).join('')
-        : 'Strong coins are missing';
+        : 'Отсутствуют монеты для покупки';
 
     await TelegramRepository.sendMessage(chatId, message);
   }
 
   private async commandStart(chatId: number) {
-    await TelegramRepository.sendMessage(chatId, 'Bot starting!');
+    await TelegramRepository.sendMessage(chatId, 'Запуск алгоритма');
     const trader = new Spot(chatId);
     await trader.start();
   }

@@ -5,8 +5,7 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx watch src/index.ts",
-    "bundle": "node dist/bundle.cjs"
+    "start": "tsx watch src/index.ts"
   },
   "keywords": [],
   "author": "",

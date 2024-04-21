@@ -1,4 +1,5 @@
 import { Pair } from '../../config';
+import { ErrorInfo } from '../../includes/ErrorInfo';
 import { BinanceRepository } from '../../repositories/binance';
 import { Kline } from '../Kline';
 
@@ -15,8 +16,8 @@ export class Graph {
   private kama: number[];
   private filterKama: number[];
 
-  // private atr: number[];
-  // private filterAtr: number[];
+  private atr: number[];
+  private filterAtr: number[];
 
   private hv: number[];
 
@@ -25,6 +26,7 @@ export class Graph {
 
   public static async createByPair(pair: Pair) {
     const klines = await BinanceRepository.getKlines(pair);
+
     return new Graph(pair, klines);
   }
 
@@ -41,20 +43,56 @@ export class Graph {
     this.kama = this.getKama(this.close, 10, 2, 30);
     this.filterKama = this.getFilter(this.kama);
 
-    // this.atr = this.getAtr(this.close, this.high, this.low, 10);
-    // this.filterAtr = this.getFilter(this.atr);
+    this.atr = this.getAtr(this.close, this.high, this.low, 10);
+    this.filterAtr = this.getFilter(this.atr);
 
     this.hv = this.getHistoricalVolatility(this.close);
 
-    this.buySignal =
-      this.buySignalKaufman(this.kama, this.filterKama) && this.hv.at(-2)! < 40;
+    this.buySignal = this.createBuySignal();
 
     this.sellSignal = true;
-    //  this.sellSignalKaufman(this.kama, this.filterKama) ||
-    // this.hv.at(-2)! > 50;
+  }
+
+  private createBuySignal(): boolean {
+    const hvPrevious = this.hv.at(-2);
+    if (hvPrevious === undefined)
+      throw new ErrorInfo(
+        'Graph.createBuySignal',
+        'Недостаточная длина массива hv',
+        { hv: this.hv },
+      );
+
+    return (
+      this.buySignalKaufman(this.kama, this.filterKama) &&
+      hvPrevious < 50 &&
+      !this.shock(this.atr, this.filterAtr)
+    );
+  }
+
+  private createSellSignal(): boolean {
+    const hvPrevious = this.hv.at(-2);
+    if (!hvPrevious)
+      throw new ErrorInfo(
+        'Graph.createBuySignal',
+        'Недостаточная длина массива hv',
+      );
+
+    return (
+      this.sellSignalKaufman(this.kama, this.filterKama) ||
+      hvPrevious > 50 ||
+      this.shock(this.atr, this.filterAtr)
+    );
   }
 
   private getKama(data: number[], len1 = 10, len2 = 2, len3 = 30): number[] {
+    if (data.length < len3)
+      throw new ErrorInfo('Graph.getKama', 'Недостаточная длина массива!', {
+        data,
+        len1,
+        len2,
+        len3,
+      });
+
     const fasted = 2 / (len2 + 1);
     const slowest = 2 / (len3 + 1);
     const kama = data.slice(0, len1);
@@ -77,28 +115,31 @@ export class Graph {
     return kama;
   }
 
-  // private getAtr(
-  //   closePrices: number[],
-  //   highPrice: number[],
-  //   lowPrice: number[],
-  //   length = 14,
-  // ) {
-  //   const atr = [highPrice[0] - lowPrice[0]];
+  private getAtr(
+    closePrices: number[],
+    highPrice: number[],
+    lowPrice: number[],
+    length = 14,
+  ) {
+    if (closePrices.length < length)
+      throw new Error('Недостаточная длина массива в getAtr');
 
-  //   for (let i = 1; i < closePrices.length; i++) {
-  //     const tr = Math.max(
-  //       highPrice[i] - lowPrice[i],
-  //       Math.abs(highPrice[i] - closePrices[i - 1]),
-  //       Math.abs(lowPrice[i] - closePrices[i - 1]),
-  //     );
+    const atr = [highPrice[0] - lowPrice[0]];
 
-  //     const atrValue = (atr[i - 1] * (length - 1) + tr) / length;
+    for (let i = 1; i < closePrices.length; i++) {
+      const tr = Math.max(
+        highPrice[i] - lowPrice[i],
+        Math.abs(highPrice[i] - closePrices[i - 1]),
+        Math.abs(lowPrice[i] - closePrices[i - 1]),
+      );
 
-  //     atr.push(atrValue);
-  //   }
+      const atrValue = (atr[i - 1] * (length - 1) + tr) / length;
 
-  //   return atr;
-  // }
+      atr.push(atrValue);
+    }
+
+    return atr;
+  }
 
   private getFilter(data: number[]): number[] {
     const valueDifferences = [];
@@ -158,6 +199,23 @@ export class Graph {
       exthigh - amaPrevious > filterPrevious * 0.1
     );
   }
+
+  private shock = (atr: number[], filter: number[]) => {
+    const atrPrevious = atr.at(-2);
+    const atrPrePrevious = atr.at(-3);
+
+    const filterPrevious = filter.at(-2);
+
+    if (!atrPrevious || !atrPrePrevious || !filterPrevious) return false;
+
+    const betweenPeriods = atrPrevious - atrPrePrevious;
+
+    if (betweenPeriods > filterPrevious * 3) {
+      return true;
+    }
+
+    return false;
+  };
 
   private getHistoricalVolatility(data: number[]): number[] {
     const dailyVolatility = [];

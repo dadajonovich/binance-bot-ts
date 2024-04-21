@@ -14,7 +14,6 @@ const cycle = new TelegramCycle();
 cycle.start();
 
 const run = async () => {
-  // console.log(await BinanceRepository.cancelOrder('XRPUSDT', 646878));
   // await BinanceRepository.createOrder('BTCUSDT', 100000.0, 'SELL', 0.5),
   // console.log(await BinanceRepository.cancelOrder('SOLUSDT', 837957));
 };
