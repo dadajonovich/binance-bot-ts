@@ -19,22 +19,22 @@ export class OrderService {
   }
 
   public static async get(orderId: number): Promise<Order> {
-    const order = await this.getByPk(orderId);
+    const order = await OrderService.getByPk(orderId);
     const { symbol } = order;
 
     const responce = await BinanceRepository.getOrder(symbol, orderId);
 
-    return await this.update(order, responce);
+    return await OrderService.update(order, responce);
   }
 
   public static async cancel(orderId: number): Promise<Order> {
-    const order = await this.getByPk(orderId);
+    const order = await OrderService.getByPk(orderId);
 
     const { symbol } = order;
 
     const responce = await BinanceRepository.cancelOrder(symbol, orderId);
 
-    return await this.update(order, responce);
+    return await OrderService.update(order, responce);
   }
 
   private static async create(
@@ -79,12 +79,12 @@ export class OrderService {
   }
 
   public static async buy(pair: Pair, usdt: number): Promise<Order> {
-    console.log('Order buy!');
+    console.log('OrderService.buy');
     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const quantity = this.getQuantity(100 / currentPrice, stepSize);
+    const quantity = OrderService.getQuantity(1000 / currentPrice, stepSize);
 
     const newOrder = await OrderService.create(
       pair,
@@ -92,58 +92,60 @@ export class OrderService {
       'BUY',
       quantity,
     );
+    console.log('OrderService.buy newOrder', newOrder);
 
-    const order = await this.repeat(newOrder);
-    if (this.isFilled(order)) return order;
+    const order = await OrderService.repeat(newOrder);
+    if (order.isFilled) return order;
 
-    return await this.buy(order.symbol, 100 - order.cummulativeQuoteQty);
-  }
-
-  private static isFilled(order: Order): boolean {
-    return order.status !== 'NEW' && order.status !== 'PARTIALLY_FILLED';
+    return await OrderService.buy(
+      order.symbol,
+      1000 - order.cummulativeQuoteQty,
+    );
   }
 
   private static async repeat(order: Order): Promise<Order> {
-    if (this.isFilled(order)) return order;
+    if (order.isFilled) return order;
     await sleep(1000 * 60 * 0.25);
 
     const currentOrder = await OrderService.get(order.orderId);
 
-    if (this.isFilled(currentOrder)) {
+    if (currentOrder.isFilled) {
       return currentOrder;
     }
     return await OrderService.cancel(currentOrder.orderId);
   }
 
-  public static async sell(pair: Pair, asset: number): Promise<Order> {
-    console.log('Order sell!');
+  public static async sell(pair: Pair, qty: number): Promise<Order> {
+    console.log('OrderService.sell');
     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
-    if (stepSize >= asset) {
-      throw new ErrorInfo('Order.sell', 'stepSize >= asset', {
+    if (stepSize >= qty) {
+      throw new ErrorInfo('Order.sell', 'stepSize >= qty', {
         stepSize,
-        asset,
+        asset: qty,
       });
     }
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const quantity = this.getQuantity(asset, stepSize);
+    const validQty = OrderService.getQuantity(qty, stepSize);
 
     const newOrder = await OrderService.create(
       pair,
       currentPrice,
       'SELL',
-      quantity,
+      validQty,
     );
 
-    const order = await this.repeat(newOrder);
-    if (this.isFilled(order)) return order;
+    console.log('OrderService.sell newOrder', newOrder);
 
-    return await this.sell(order.symbol, asset - order.executedQty);
+    const order = await OrderService.repeat(newOrder);
+    if (order.isFilled) return order;
+
+    return await OrderService.sell(order.symbol, qty - order.executedQty);
   }
 
-  private static getQuantity(quantityAsset: number, stepSize: number): number {
+  public static getQuantity(quantityAsset: number, stepSize: number): number {
     const [integer, decimal] = String(quantityAsset).split('.');
     if (decimal === undefined) return Number(integer);
 

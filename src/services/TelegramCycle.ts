@@ -5,8 +5,8 @@ import { Graph } from '../entities/Graph';
 
 import { sleep } from '../includes/utils/sleep';
 import { Spot } from '../entities/Spot';
-import { storage } from '../entities/Storage';
 import { OrderService } from '../entities/Order/OrderService';
+import { ErrorInfo } from '../includes/ErrorInfo';
 
 export class TelegramCycle {
   public async start() {
@@ -39,7 +39,8 @@ export class TelegramCycle {
             await this.getOpenOrders(updateObject.message.chat.id);
             break;
 
-          case '/cancel':
+          case '/sellAll':
+            await this.sellAll(updateObject.message.chat.id);
             break;
 
           case '/start':
@@ -97,5 +98,48 @@ export class TelegramCycle {
   private async getOpenOrders(chatId: number) {
     const orders = await OrderService.getOpen();
     console.log(orders);
+  }
+
+  private async sellAll() {
+    const balances = await BinanceRepository.getBalances();
+    // const filtered = balance.filter((item, index) => item.asset !== 'USDT');
+    // console.log(filtered);
+
+    for (const balance of balances) {
+      if (balance.asset === 'USDT') continue;
+
+      const pair: Pair = `${balance.asset}USDT`;
+
+      const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+
+      if (stepSize >= balance.free) {
+        throw new ErrorInfo('Order.sell', 'stepSize >= free', {
+          stepSize,
+          free: balance.free,
+        });
+      }
+
+      const currentPrice = await BinanceRepository.getPrice(pair);
+
+      const quantity = OrderService.getQuantity(balance.free, stepSize);
+
+      const responce = await BinanceRepository.createOrder(
+        pair,
+        currentPrice,
+        'SELL',
+        quantity,
+        'LIMIT',
+      );
+
+      if (order.isFilled) return order;
+      await sleep(1000 * 60 * 0.25);
+
+      const currentOrder = await OrderService.get(order.orderId);
+
+      if (currentOrder.isFilled) {
+        return currentOrder;
+      }
+      return await OrderService.cancel(currentOrder.orderId);
+    }
   }
 }

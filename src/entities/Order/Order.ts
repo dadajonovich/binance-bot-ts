@@ -27,7 +27,7 @@ export type OrderProps = {
   price: string;
   side: 'SELL' | 'BUY';
   type: 'LIMIT' | 'MARKET';
-  status: 'NEW' | 'PARTIALLY_FILLED' | 'CACANCELED';
+  status: 'NEW' | 'PARTIALLY_FILLED' | 'CANCELED';
   origQty: string;
   executedQty: string;
   cummulativeQuoteQty: string;
@@ -42,34 +42,14 @@ export class Order extends Model<
   declare price: number;
   declare side: 'SELL' | 'BUY';
   declare type: 'LIMIT' | 'MARKET';
-  declare status: 'NEW' | 'PARTIALLY_FILLED' | 'CACANCELED';
+  declare status: 'NEW' | 'PARTIALLY_FILLED' | 'CANCELED';
   declare origQty: number;
   declare executedQty: number;
   declare cummulativeQuoteQty: number;
 
-  // private set(order: Order | OrderProps) {
-  //   const {
-  //     symbol,
-  //     orderId,
-  //     price,
-  //     // origQty,
-  //     cummulativeQuoteQty,
-  //     status,
-  //     type,
-  //     side,
-  //     executedQty,
-  //   } = order;
-
-  //   this.symbol = symbol;
-  //   this.orderId = orderId;
-  //   this.status = status;
-  //   this.type = type;
-  //   this.side = side;
-  //   this.price = Number(price);
-  //   // this.origQty = Number(origQty);
-  //   this.executedQty = Number(executedQty);
-  //   this.cummulativeQuoteQty = Number(cummulativeQuoteQty);
-  // }
+  public get isFilled(): NonAttribute<boolean> {
+    return this.status !== 'NEW' && this.status !== 'PARTIALLY_FILLED';
+  }
 }
 
 Order.init(

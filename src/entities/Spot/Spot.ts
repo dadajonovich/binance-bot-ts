@@ -123,6 +123,7 @@ export class Spot {
   }
 
   private async buy(pair: Pair): Promise<Order> {
+    console.log('Order.buy');
     const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
     if (usdt > 10) {
@@ -134,11 +135,13 @@ export class Spot {
   }
 
   private async sell(pair: Pair): Promise<Order> {
-    const { free: balance } = await BinanceRepository.getBalances(
+    console.log('Order.sell');
+    const { free } = await BinanceRepository.getBalances(
       pair.replace('USDT', ''),
     );
+    console.log('Spot.sell asset', pair, free);
 
-    const order = await OrderService.sell(pair, balance);
+    const order = await OrderService.sell(pair, free);
 
     return order;
   }

@@ -1,4 +1,4 @@
-import { Pair, binanceUrl, config } from '../config';
+import { Asset, Pair, binanceUrl, config } from '../config';
 import { Repository } from '../includes/Repository';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/utils/toQuery';
@@ -12,7 +12,7 @@ type BinanceError = {
 };
 
 type Balance = {
-  asset: string;
+  asset: Asset | 'USDT';
   free: number;
   locked: number;
 };
@@ -66,8 +66,13 @@ export const BinanceRepository =
     public async getBalances(asset: string): Promise<Balance>;
 
     public async getBalances(asset?: string): Promise<Balance[] | Balance> {
+      type BalanceRaw = {
+        asset: Balance['asset'];
+        free: string;
+        locked: string;
+      };
       type Account = {
-        balances: Record<'asset' | 'free' | 'locked', string>[];
+        balances: BalanceRaw[];
       };
 
       const responce = await this.protectedRequest<Account>(`account`);
