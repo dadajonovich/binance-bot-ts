@@ -21,7 +21,7 @@ import {
 } from 'sequelize';
 import { OrderService } from './OrderService';
 
-export type OrderProps = {
+export type OrderDto = {
   symbol: Pair;
   orderId: number;
   price: string;
@@ -46,10 +46,6 @@ export class Order extends Model<
   declare origQty: number;
   declare executedQty: number;
   declare cummulativeQuoteQty: number;
-
-  public get isFilled(): NonAttribute<boolean> {
-    return this.status !== 'NEW' && this.status !== 'PARTIALLY_FILLED';
-  }
 }
 
 Order.init(

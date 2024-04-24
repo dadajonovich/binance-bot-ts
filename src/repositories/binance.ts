@@ -1,8 +1,8 @@
 import { Asset, Pair, binanceUrl, config } from '../config';
 import { Repository } from '../includes/Repository';
 import { createHmac } from 'node:crypto';
-import { toQuery } from '../includes/utils/toQuery';
-import { Order, OrderProps } from '../entities/Order';
+import { toQuery } from '../includes/toQuery';
+import { Order, OrderDto } from '../entities/Order';
 import { Kline } from '../entities/Kline';
 import { ErrorInfo } from '../includes/ErrorInfo';
 
@@ -124,7 +124,7 @@ export const BinanceRepository =
       };
 
       type ExchangeInfo = {
-        symbols: {
+        pairs: {
           symbol: Pair;
           filters: (PriceFilter | LotFilter)[];
         }[];
@@ -134,7 +134,7 @@ export const BinanceRepository =
         symbol,
       });
 
-      const symbolObject = responce.symbols.find(
+      const symbolObject = responce.pairs.find(
         ({ symbol: symbolName }) => symbolName === symbol,
       );
 
@@ -177,8 +177,8 @@ export const BinanceRepository =
       quantity: number,
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
-    ): Promise<OrderProps> {
-      return await this.protectedRequest<OrderProps>(
+    ): Promise<OrderDto> {
+      return await this.protectedRequest<OrderDto>(
         'order',
         {
           symbol,
@@ -192,19 +192,16 @@ export const BinanceRepository =
       );
     }
 
-    public async cancelOrder(
-      symbol: Pair,
-      orderId: number,
-    ): Promise<OrderProps> {
-      return await this.protectedRequest<OrderProps>(
+    public async cancelOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
+      return await this.protectedRequest<OrderDto>(
         'order',
         { symbol, orderId },
         { method: 'DELETE' },
       );
     }
 
-    public async getOrder(symbol: Pair, orderId: number): Promise<OrderProps> {
-      const [order] = await this.protectedRequest<OrderProps[]>('allOrders', {
+    public async getOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
+      const [order] = await this.protectedRequest<OrderDto[]>('allOrders', {
         symbol,
         orderId,
       });

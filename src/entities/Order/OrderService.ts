@@ -1,13 +1,55 @@
 import { Pair } from '../../config';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { sleep } from '../../includes/utils/sleep';
+import { sleep } from '../../includes/sleep';
 import { BinanceRepository } from '../../repositories/binance';
-import { Order, OrderProps } from './Order';
+import { Order, OrderDto } from './Order';
+import { getQuantity } from './getQuantity';
+import { orderIsFilled } from './orderIsFilled';
+
+export class BinanceService {
+  private static async repeat(order: OrderDto): Promise<OrderDto> {
+    if (orderIsFilled(order)) return order;
+    await sleep(1000 * 60 * 0.25);
+
+    const { symbol, orderId } = order;
+    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
+
+    if (orderIsFilled(order)) {
+      return currentOrder;
+    }
+    return await BinanceRepository.cancelOrder(symbol, orderId);
+  }
+
+  public static async buy(pair: Pair) {
+    console.log('OrderService.buy');
+    const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+
+    const currentPrice = await BinanceRepository.getPrice(pair);
+
+    const quantity = getQuantity(1000 / currentPrice, stepSize);
+
+    const newOrder = await BinanceRepository.create(
+      pair,
+      currentPrice,
+      'BUY',
+      quantity,
+    );
+    console.log('OrderService.buy newOrder', newOrder);
+
+    const order = await OrderService.repeat(newOrder);
+    if (orderIsFilled(order)) return order;
+
+    return await OrderService.buy(
+      order.symbol,
+      1000 - order.cummulativeQuoteQty,
+    );
+  }
+}
 
 export class OrderService {
   private static async update(
     order: Order,
-    orderProps: OrderProps,
+    orderProps: OrderDto,
   ): Promise<Order> {
     const { status, executedQty, cummulativeQuoteQty } = orderProps;
 
@@ -84,7 +126,7 @@ export class OrderService {
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const quantity = OrderService.getQuantity(1000 / currentPrice, stepSize);
+    const quantity = getQuantity(1000 / currentPrice, stepSize);
 
     const newOrder = await OrderService.create(
       pair,
@@ -95,7 +137,7 @@ export class OrderService {
     console.log('OrderService.buy newOrder', newOrder);
 
     const order = await OrderService.repeat(newOrder);
-    if (order.isFilled) return order;
+    if (orderIsFilled(order)) return order;
 
     return await OrderService.buy(
       order.symbol,
@@ -104,12 +146,12 @@ export class OrderService {
   }
 
   private static async repeat(order: Order): Promise<Order> {
-    if (order.isFilled) return order;
+    if (orderIsFilled(order)) return order;
     await sleep(1000 * 60 * 0.25);
 
     const currentOrder = await OrderService.get(order.orderId);
 
-    if (currentOrder.isFilled) {
+    if (orderIsFilled(currentOrder)) {
       return currentOrder;
     }
     return await OrderService.cancel(currentOrder.orderId);
@@ -128,7 +170,7 @@ export class OrderService {
 
     const currentPrice = await BinanceRepository.getPrice(pair);
 
-    const validQty = OrderService.getQuantity(qty, stepSize);
+    const validQty = getQuantity(qty, stepSize);
 
     const newOrder = await OrderService.create(
       pair,
@@ -140,23 +182,9 @@ export class OrderService {
     console.log('OrderService.sell newOrder', newOrder);
 
     const order = await OrderService.repeat(newOrder);
-    if (order.isFilled) return order;
+    if (orderIsFilled(order)) return order;
 
     return await OrderService.sell(order.symbol, qty - order.executedQty);
-  }
-
-  public static getQuantity(quantityAsset: number, stepSize: number): number {
-    const [integer, decimal] = String(quantityAsset).split('.');
-    if (decimal === undefined) return Number(integer);
-
-    const length = stepSize.toString().replaceAll(/[^0]/g, '').length;
-
-    const quantityDecimal = decimal.slice(0, length);
-
-    const quantity = [integer, quantityDecimal].filter((str) => str).join('.');
-
-    console.log('getQuantity', quantityAsset, stepSize, quantity);
-    return Number(quantity);
   }
 
   public static async getOpen(): Promise<Order[]> {

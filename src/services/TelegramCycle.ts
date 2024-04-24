@@ -3,7 +3,7 @@ import { TelegramRepository } from '../repositories/telegram';
 import { Pair, pairs } from '../config';
 import { Graph } from '../entities/Graph';
 
-import { sleep } from '../includes/utils/sleep';
+import { sleep } from '../includes/sleep';
 import { Spot } from '../entities/Spot';
 import { OrderService } from '../entities/Order/OrderService';
 import { ErrorInfo } from '../includes/ErrorInfo';
@@ -100,10 +100,8 @@ export class TelegramCycle {
     console.log(orders);
   }
 
-  private async sellAll() {
+  private async sellAll(chatId: number) {
     const balances = await BinanceRepository.getBalances();
-    // const filtered = balance.filter((item, index) => item.asset !== 'USDT');
-    // console.log(filtered);
 
     for (const balance of balances) {
       if (balance.asset === 'USDT') continue;

@@ -1,4 +1,4 @@
-import { toQuery } from './utils/toQuery';
+import { toQuery } from './toQuery';
 
 export abstract class Repository<
   ResponceObject extends object,
