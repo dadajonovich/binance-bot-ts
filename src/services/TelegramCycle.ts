@@ -5,7 +5,7 @@ import { Graph } from '../entities/Graph';
 
 import { sleep } from '../includes/sleep';
 import { Spot } from '../entities/Spot';
-import { OrderService } from '../entities/Order/OrderService';
+import { BinanceService } from '../entities/Spot/OperationService';
 import { ErrorInfo } from '../includes/ErrorInfo';
 
 export class TelegramCycle {
@@ -40,7 +40,7 @@ export class TelegramCycle {
             break;
 
           case '/sellAll':
-            await this.sellAll(updateObject.message.chat.id);
+            // await this.sellAll(updateObject.message.chat.id);
             break;
 
           case '/start':
@@ -96,48 +96,48 @@ export class TelegramCycle {
   }
 
   private async getOpenOrders(chatId: number) {
-    const orders = await OrderService.getOpen();
+    const orders = await BinanceRepository.getOpenOrders();
     console.log(orders);
   }
 
-  private async sellAll(chatId: number) {
-    const balances = await BinanceRepository.getBalances();
+  // private async sellAll(chatId: number) {
+  //   const balances = await BinanceRepository.getBalances();
 
-    for (const balance of balances) {
-      if (balance.asset === 'USDT') continue;
+  //   for (const balance of balances) {
+  //     if (balance.asset === 'USDT') continue;
 
-      const pair: Pair = `${balance.asset}USDT`;
+  //     const pair: Pair = `${balance.asset}USDT`;
 
-      const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+  //     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
-      if (stepSize >= balance.free) {
-        throw new ErrorInfo('Order.sell', 'stepSize >= free', {
-          stepSize,
-          free: balance.free,
-        });
-      }
+  //     if (stepSize >= balance.free) {
+  //       throw new ErrorInfo('Order.sell', 'stepSize >= free', {
+  //         stepSize,
+  //         free: balance.free,
+  //       });
+  //     }
 
-      const currentPrice = await BinanceRepository.getPrice(pair);
+  //     const currentPrice = await BinanceRepository.getPrice(pair);
 
-      const quantity = OrderService.getQuantity(balance.free, stepSize);
+  //     const quantity = OrderService.getQuantity(balance.free, stepSize);
 
-      const responce = await BinanceRepository.createOrder(
-        pair,
-        currentPrice,
-        'SELL',
-        quantity,
-        'LIMIT',
-      );
+  //     const responce = await BinanceRepository.createOrder(
+  //       pair,
+  //       currentPrice,
+  //       'SELL',
+  //       quantity,
+  //       'LIMIT',
+  //     );
 
-      if (order.isFilled) return order;
-      await sleep(1000 * 60 * 0.25);
+  //     if (order.isFilled) return order;
+  //     await sleep(1000 * 60 * 0.25);
 
-      const currentOrder = await OrderService.get(order.orderId);
+  //     const currentOrder = await OrderService.get(order.orderId);
 
-      if (currentOrder.isFilled) {
-        return currentOrder;
-      }
-      return await OrderService.cancel(currentOrder.orderId);
-    }
-  }
+  //     if (currentOrder.isFilled) {
+  //       return currentOrder;
+  //     }
+  //     return await OrderService.cancel(currentOrder.orderId);
+  //   }
+  // }
 }

@@ -6,7 +6,7 @@ import { Graph } from './entities/Graph';
 import { connect } from './db/sequelize';
 import { CronJob, CronTime } from 'cron';
 import { Order } from './entities/Order';
-import { OrderService } from './entities/Order/OrderService';
+// import { OrderService } from './entities/Spot/OperationService';
 
 // console.log(config);
 
@@ -16,12 +16,15 @@ cycle.start();
 
 const run = async () => {
   await connect();
-  const openOrders = await OrderService.getOpen();
+  // const openOrders = await OrderService.getOpen();
+
   // for (const order of openOrders) {
   //   await OrderService.cancel(order.orderId);
   // }
-  // await BinanceRepository.createOrder('BTCUSDT', 100000.0, 'SELL', 0.5),
-  // console.log(await BinanceRepository.cancelOrder('SOLUSDT', 837957));
+
+  // Написать покупку ордера и обработать ошибку cancelOrder
+  await BinanceRepository.createOrder('BTCUSDT', 1000.0, 'SELL', 0.5),
+    console.log(await BinanceRepository.cancelOrder('BTCUSDT', 4276536));
 };
 
 run();

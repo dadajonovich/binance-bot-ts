@@ -7,7 +7,7 @@ import { Pair, pairs } from '../../config';
 import { CronTime } from 'cron';
 import { Order } from '../Order';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { OrderService } from '../Order/OrderService';
+import { BinanceService } from './OperationService';
 
 export class Spot {
   private chatId: number;
@@ -127,7 +127,7 @@ export class Spot {
     const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
     if (usdt > 10) {
-      const order = await OrderService.buy(pair, usdt);
+      const order = await BinanceService.buy(pair, 1000);
       return order;
     } else {
       throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
@@ -141,7 +141,7 @@ export class Spot {
     );
     console.log('Spot.sell asset', pair, free);
 
-    const order = await OrderService.sell(pair, free);
+    const order = await BinanceService.sell(pair, free);
 
     return order;
   }

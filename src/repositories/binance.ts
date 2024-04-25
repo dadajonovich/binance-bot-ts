@@ -154,12 +154,12 @@ export const BinanceRepository =
       throw new Error('Filter not found');
     }
 
-    // public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
-    //   const responce = await this.protectedRequest<OrderProps[]>('openOrders', {
-    //     symbol,
-    //   });
-    //   return responce.map((order) => new Order(order));
-    // }
+    public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
+      const responce = await this.protectedRequest<OrderDto[]>('openOrders', {
+        symbol,
+      });
+      return responce.map((order) => Order.from(order));
+    }
 
     public async getPrice(symbol: Pair): Promise<number> {
       type TickerPrice = { symbol: string; price: string };
@@ -177,8 +177,8 @@ export const BinanceRepository =
       quantity: number,
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
-    ): Promise<OrderDto> {
-      return await this.protectedRequest<OrderDto>(
+    ): Promise<Order> {
+      const responce = await this.protectedRequest<OrderDto>(
         'order',
         {
           symbol,
@@ -190,17 +190,21 @@ export const BinanceRepository =
         },
         { method: 'POST' },
       );
+
+      return Order.from(responce);
     }
 
-    public async cancelOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
-      return await this.protectedRequest<OrderDto>(
+    public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
+      const responce = await this.protectedRequest<OrderDto>(
         'order',
         { symbol, orderId },
         { method: 'DELETE' },
       );
+
+      return Order.from(responce);
     }
 
-    public async getOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
+    public async getOrder(symbol: Pair, orderId: number): Promise<Order> {
       const [order] = await this.protectedRequest<OrderDto[]>('allOrders', {
         symbol,
         orderId,
@@ -211,6 +215,6 @@ export const BinanceRepository =
           'Запрашиваемый ордер отсутствует в Binance',
           { orderId },
         );
-      return order;
+      return Order.from(order);
     }
   })();
