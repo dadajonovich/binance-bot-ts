@@ -1,11 +1,11 @@
-import { Pair } from '../../config';
+import { Asset, Pair } from '../../config';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 import { sleep } from '../../includes/sleep';
 import { BinanceRepository } from '../../repositories/binance';
 import { Order } from '../Order/Order';
 import { getQuantity } from '../Order/getQuantity';
 
-export class BinanceService {
+export class OperationService {
   private static async repeat(order: Order): Promise<Order> {
     if (order.isFilled) return order;
     await sleep(1000 * 60 * 0.25);
@@ -26,7 +26,12 @@ export class BinanceService {
     const currentPrice = await BinanceRepository.getPrice(pair);
 
     const quantity = getQuantity(usdt / currentPrice, stepSize);
-
+    console.log(
+      '1 BinanceService.buy newOrder',
+      pair,
+      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
+        .free,
+    );
     const newOrder = await BinanceRepository.createOrder(
       pair,
       currentPrice,
@@ -35,10 +40,16 @@ export class BinanceService {
     );
     console.log('BinanceService.buy newOrder', newOrder);
 
-    const order = await BinanceService.repeat(newOrder);
+    const order = await OperationService.repeat(newOrder);
+    console.log(
+      '2 BinanceService.buy newOrder',
+      pair,
+      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
+        .free,
+    );
     if (order.isFilled) return order;
 
-    return await BinanceService.buy(
+    return await OperationService.buy(
       order.symbol,
       usdt - order.cummulativeQuoteQty,
     );
@@ -58,7 +69,12 @@ export class BinanceService {
     const currentPrice = await BinanceRepository.getPrice(pair);
 
     const validQty = getQuantity(qty, stepSize);
-
+    console.log(
+      '1 BinanceService.sell newOrder',
+      pair,
+      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
+        .free,
+    );
     const newOrder = await BinanceRepository.createOrder(
       pair,
       currentPrice,
@@ -68,10 +84,16 @@ export class BinanceService {
 
     console.log('BinanceService.sell newOrder', newOrder);
 
-    const order = await BinanceService.repeat(newOrder);
+    const order = await OperationService.repeat(newOrder);
+    console.log(
+      '2 BinanceService.sell newOrder',
+      pair,
+      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
+        .free,
+    );
     if (order.isFilled) return order;
 
-    return await BinanceService.sell(order.symbol, qty - order.executedQty);
+    return await OperationService.sell(order.symbol, qty - order.executedQty);
   }
 }
 

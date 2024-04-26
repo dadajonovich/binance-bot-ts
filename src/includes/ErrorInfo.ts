@@ -1,5 +1,6 @@
 export class ErrorInfo extends Error {
   public info: any;
+  public sender: string;
 
   public constructor(
     sender: string,
@@ -7,7 +8,8 @@ export class ErrorInfo extends Error {
     info?: any,
     stack?: string,
   ) {
-    super(`${sender} ${message}`);
+    super(message);
+    this.sender = sender;
     this.info = info;
     this.stack = stack || this.stack;
   }

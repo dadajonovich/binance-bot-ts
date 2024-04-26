@@ -63,3 +63,4 @@ export const pairs = assets.map((asset) => `${asset}USDT` as const);
 
 export type Asset = (typeof assets)[number];
 export type Pair = (typeof pairs)[number];
+export type AssetOrUSDT = Asset | 'USDT';

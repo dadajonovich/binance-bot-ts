@@ -1,4 +1,4 @@
-import { Asset, Pair, binanceUrl, config } from '../config';
+import { Asset, AssetOrUSDT, Pair, binanceUrl, config } from '../config';
 import { Repository } from '../includes/Repository';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../includes/toQuery';
@@ -12,7 +12,7 @@ type BinanceError = {
 };
 
 type Balance = {
-  asset: Asset | 'USDT';
+  asset: AssetOrUSDT;
   free: number;
   locked: number;
 };
@@ -63,11 +63,13 @@ export const BinanceRepository =
     }
 
     public async getBalances(): Promise<Balance[]>;
-    public async getBalances(asset: string): Promise<Balance>;
+    public async getBalances(asset: AssetOrUSDT): Promise<Balance>;
 
-    public async getBalances(asset?: string): Promise<Balance[] | Balance> {
+    public async getBalances(
+      asset?: AssetOrUSDT,
+    ): Promise<Balance[] | Balance> {
       type BalanceRaw = {
-        asset: Balance['asset'];
+        asset: AssetOrUSDT;
         free: string;
         locked: string;
       };
@@ -124,7 +126,7 @@ export const BinanceRepository =
       };
 
       type ExchangeInfo = {
-        pairs: {
+        symbols: {
           symbol: Pair;
           filters: (PriceFilter | LotFilter)[];
         }[];
@@ -134,7 +136,7 @@ export const BinanceRepository =
         symbol,
       });
 
-      const symbolObject = responce.pairs.find(
+      const symbolObject = responce.symbols.find(
         ({ symbol: symbolName }) => symbolName === symbol,
       );
 
@@ -195,13 +197,19 @@ export const BinanceRepository =
     }
 
     public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
-      const responce = await this.protectedRequest<OrderDto>(
-        'order',
-        { symbol, orderId },
-        { method: 'DELETE' },
-      );
+      try {
+        const responce = await this.protectedRequest<OrderDto>(
+          'order',
+          { symbol, orderId },
+          { method: 'DELETE' },
+        );
 
-      return Order.from(responce);
+        return Order.from(responce);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Unknown order sent.')
+          return await this.getOrder(symbol, orderId);
+        throw error;
+      }
     }
 
     public async getOrder(symbol: Pair, orderId: number): Promise<Order> {

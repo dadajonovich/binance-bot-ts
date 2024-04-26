@@ -40,14 +40,18 @@ export class Order {
     public price: number,
     public side: 'SELL' | 'BUY',
     public type: 'LIMIT' | 'MARKET',
-    public status: 'NEW' | 'PARTIALLY_FILLED' | 'CANCELED',
+    public status: 'NEW' | 'PARTIALLY_FILLED' | 'CANCELED' | 'FILLED',
     public origQty: number,
     public executedQty: number,
     public cummulativeQuoteQty: number,
   ) {}
 
   public get isFilled(): boolean {
-    return this.status !== 'NEW' && this.status !== 'PARTIALLY_FILLED';
+    return (
+      this.status !== 'NEW' &&
+      this.status !== 'PARTIALLY_FILLED' &&
+      this.status !== 'CANCELED'
+    );
   }
 
   public static from(order: OrderDto) {

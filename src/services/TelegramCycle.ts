@@ -5,7 +5,7 @@ import { Graph } from '../entities/Graph';
 
 import { sleep } from '../includes/sleep';
 import { Spot } from '../entities/Spot';
-import { BinanceService } from '../entities/Spot/OperationService';
+import { OperationService } from '../entities/Spot/OperationService';
 import { ErrorInfo } from '../includes/ErrorInfo';
 
 export class TelegramCycle {
@@ -40,7 +40,7 @@ export class TelegramCycle {
             break;
 
           case '/sellAll':
-            // await this.sellAll(updateObject.message.chat.id);
+            await this.sellAll(updateObject.message.chat.id);
             break;
 
           case '/start':
@@ -100,44 +100,28 @@ export class TelegramCycle {
     console.log(orders);
   }
 
-  // private async sellAll(chatId: number) {
-  //   const balances = await BinanceRepository.getBalances();
+  private async sellAll(chatId: number) {
+    const balances = await BinanceRepository.getBalances();
+    for (const balance of balances) {
+      if (balance.asset === 'USDT') continue;
 
-  //   for (const balance of balances) {
-  //     if (balance.asset === 'USDT') continue;
+      try {
+        await OperationService.sell(
+          (balance.asset + 'USDT') as Pair,
+          balance.free,
+        );
+      } catch (error) {
+        if (error instanceof ErrorInfo && error.message === 'stepSize >= qty') {
+          console.log('stepSize >= qty', balance);
+          continue;
+        }
+        throw error;
+      }
 
-  //     const pair: Pair = `${balance.asset}USDT`;
-
-  //     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
-
-  //     if (stepSize >= balance.free) {
-  //       throw new ErrorInfo('Order.sell', 'stepSize >= free', {
-  //         stepSize,
-  //         free: balance.free,
-  //       });
-  //     }
-
-  //     const currentPrice = await BinanceRepository.getPrice(pair);
-
-  //     const quantity = OrderService.getQuantity(balance.free, stepSize);
-
-  //     const responce = await BinanceRepository.createOrder(
-  //       pair,
-  //       currentPrice,
-  //       'SELL',
-  //       quantity,
-  //       'LIMIT',
-  //     );
-
-  //     if (order.isFilled) return order;
-  //     await sleep(1000 * 60 * 0.25);
-
-  //     const currentOrder = await OrderService.get(order.orderId);
-
-  //     if (currentOrder.isFilled) {
-  //       return currentOrder;
-  //     }
-  //     return await OrderService.cancel(currentOrder.orderId);
-  //   }
-  // }
+      await TelegramRepository.sendMessage(
+        chatId,
+        `Продажа ${balance.asset + 'USDT'} ${balance.free}`,
+      );
+    }
+  }
 }

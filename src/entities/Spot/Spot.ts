@@ -3,11 +3,11 @@ import { CronJob } from 'cron';
 import { BinanceRepository } from '../../repositories/binance';
 import { Graph } from '../Graph';
 import { TelegramRepository } from '../../repositories/telegram';
-import { Pair, pairs } from '../../config';
+import { Asset, Pair, pairs } from '../../config';
 import { CronTime } from 'cron';
 import { Order } from '../Order';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { BinanceService } from './OperationService';
+import { OperationService } from './OperationService';
 
 export class Spot {
   private chatId: number;
@@ -127,7 +127,7 @@ export class Spot {
     const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
     if (usdt > 10) {
-      const order = await BinanceService.buy(pair, 1000);
+      const order = await OperationService.buy(pair, 1000);
       return order;
     } else {
       throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
@@ -137,11 +137,11 @@ export class Spot {
   private async sell(pair: Pair): Promise<Order> {
     console.log('Order.sell');
     const { free } = await BinanceRepository.getBalances(
-      pair.replace('USDT', ''),
+      pair.replace('USDT', '') as Asset,
     );
     console.log('Spot.sell asset', pair, free);
 
-    const order = await BinanceService.sell(pair, free);
+    const order = await OperationService.sell(pair, free);
 
     return order;
   }
