@@ -1,10 +1,10 @@
-import { Asset, AssetOrUSDT, Pair, binanceUrl, config } from '../config';
-import { Repository } from '../includes/Repository';
+import { Asset, AssetOrUSDT, Pair, binanceUrl, config } from '../../config';
+import { Repository } from '../../includes/Repository';
 import { createHmac } from 'node:crypto';
-import { toQuery } from '../includes/toQuery';
-import { Order, OrderDto } from '../entities/Order';
-import { Kline } from '../entities/Kline';
-import { ErrorInfo } from '../includes/ErrorInfo';
+import { toQuery } from '../../includes/toQuery';
+import { Order, OrderDto } from '../Order';
+import { Kline } from '../Kline';
+import { ErrorInfo } from '../../includes/ErrorInfo';
 
 type BinanceError = {
   code: number;

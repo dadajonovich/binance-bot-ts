@@ -1,5 +1,5 @@
-import { telegramUrl } from '../config';
-import { Repository } from '../includes/Repository';
+import { telegramUrl } from '../../config';
+import { Repository } from '../../includes/Repository';
 
 type MessageObject = {
   message_id: number;

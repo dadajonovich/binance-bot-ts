@@ -19,7 +19,7 @@ import {
   BelongsToManyRemoveAssociationMixin,
   NonAttribute,
 } from 'sequelize';
-import { OrderService } from '../Spot/OperationService';
+import { OrderService } from '../Binance/BinanceService';
 
 export type OrderDto = {
   symbol: Pair;

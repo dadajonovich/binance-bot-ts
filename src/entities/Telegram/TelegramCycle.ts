@@ -1,12 +1,12 @@
-import { BinanceRepository } from '../repositories/binance';
-import { TelegramRepository } from '../repositories/telegram';
-import { Pair, pairs } from '../config';
-import { Graph } from '../entities/Graph';
+import { BinanceRepository } from '../Binance/BinanceRepository';
+import { TelegramRepository } from './TelegramRepository';
+import { Pair, pairs } from '../../config';
+import { Graph } from '../Graph';
 
-import { sleep } from '../includes/sleep';
-import { Spot } from '../entities/Spot';
-import { OperationService } from '../entities/Spot/OperationService';
-import { ErrorInfo } from '../includes/ErrorInfo';
+import { sleep } from '../../includes/sleep';
+import { Spot } from '../Spot';
+import { BinanceService } from '../Binance/BinanceService';
+import { ErrorInfo } from '../../includes/ErrorInfo';
 
 export class TelegramCycle {
   public async start() {
@@ -106,7 +106,7 @@ export class TelegramCycle {
       if (balance.asset === 'USDT') continue;
 
       try {
-        await OperationService.sell(
+        await BinanceService.sell(
           (balance.asset + 'USDT') as Pair,
           balance.free,
         );
