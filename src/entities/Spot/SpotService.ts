@@ -1,32 +1,33 @@
-import { ErrorInfo } from '../../includes/ErrorInfo';
 import { Order } from '../Order/Order';
 import { LastOrder } from '../LastOrder';
-import { BinanceService } from '../Binance/BinanceService';
+import { Actioner } from '../Actioner';
 
-export class SpotService extends BinanceService {
-  protected static override async handleCreateOrder(
-    order: Order,
-  ): Promise<void> {
-    console.log('handleCreateOrder');
-    const { symbol, orderId } = order;
-    await LastOrder.create({ symbol, orderId });
-  }
-  protected static override async deleteOrder(orderId: number): Promise<void> {
-    console.log('deleteOrder');
-    const lastOrder = await SpotService.getByPk(orderId);
-    // await LastOrder.destroy({ where: { orderId } });
-    await lastOrder.destroy();
-  }
+export const SpotService = new (class SpotService extends Actioner {
+  public constructor() {
+    super();
+    this.addEventListener(
+      'createdOrder',
+      async (order: Order): Promise<void> => {
+        await this.deleteLastOrder();
 
-  public static async getByPk(orderId: number): Promise<LastOrder> {
-    return await LastOrder.findByPk(orderId, {
-      rejectOnEmpty: new ErrorInfo('SpotService.getByPk', 'orderId не найден', {
-        orderId,
-      }),
+        console.log('event createdOrder');
+        const { symbol, orderId } = order;
+        await LastOrder.create({ symbol, orderId });
+      },
+    );
+
+    this.addEventListener('filledSell', async (): Promise<void> => {
+      await this.deleteLastOrder();
     });
   }
 
-  public static async getLast(): Promise<LastOrder | null> {
+  public async deleteLastOrder() {
+    const lastOrder = await this.getLast();
+
+    await lastOrder?.destroy();
+  }
+
+  public async getLast() {
     return await LastOrder.findOne();
   }
-}
+})();

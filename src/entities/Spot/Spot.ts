@@ -12,7 +12,7 @@ import { LastOrder } from '../LastOrder';
 export class Spot {
   private chatId: number;
 
-  constructor(chatId: number) {
+  public constructor(chatId: number) {
     this.chatId = chatId;
   }
 
