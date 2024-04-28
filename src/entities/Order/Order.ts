@@ -1,4 +1,5 @@
 import { Pair } from '../../config';
+import { ErrorInfo } from '../../includes/ErrorInfo';
 
 export type OrderDto = {
   symbol: Pair;
@@ -12,6 +13,15 @@ export type OrderDto = {
   cummulativeQuoteQty: string;
 };
 
+const allowStatuses = [
+  'NEW',
+  'PARTIALLY_FILLED',
+  'CANCELED',
+  'FILLED',
+] as const;
+
+type OrderStatus = (typeof allowStatuses)[number];
+
 export class Order {
   public constructor(
     public symbol: Pair,
@@ -19,18 +29,20 @@ export class Order {
     public price: number,
     public side: 'SELL' | 'BUY',
     public type: 'LIMIT' | 'MARKET',
-    public status: 'NEW' | 'PARTIALLY_FILLED' | 'CANCELED' | 'FILLED',
+    public status: OrderStatus,
     public origQty: number,
     public executedQty: number,
     public cummulativeQuoteQty: number,
-  ) {}
+  ) {
+    if (!allowStatuses.includes(status))
+      throw new ErrorInfo('class Order', 'Invalid status', {
+        symbol,
+        status,
+      });
+  }
 
   public get isFilled(): boolean {
-    return (
-      this.status !== 'NEW' &&
-      this.status !== 'PARTIALLY_FILLED' &&
-      this.status !== 'CANCELED'
-    );
+    return this.status === 'FILLED';
   }
 
   public static from(order: OrderDto) {

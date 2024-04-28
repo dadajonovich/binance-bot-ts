@@ -1,9 +1,25 @@
+import { ErrorInfo } from '../../includes/ErrorInfo';
+import { LotParams } from '../Binance';
+
 export const getQuantity = (
-  quantityAsset: number,
-  stepSize: number,
+  qty: number,
+  price: number,
+  lotParams: LotParams,
 ): number => {
-  const [integer, decimal] = String(quantityAsset).split('.');
-  if (decimal === undefined) return Number(integer);
+  const { stepSize, maxNotional, minNotional } = lotParams;
+
+  const minQty = minNotional / price;
+  const maxQty = maxNotional / price;
+
+  if (minQty >= qty) {
+    throw new ErrorInfo('getQuantity', 'minQty >= qty', {
+      qty,
+      minQty,
+    });
+  }
+
+  const [integer, decimal] = String(qty).split('.');
+  if (decimal === undefined) return Math.min(Number(integer), maxQty);
 
   const length = stepSize.toString().replaceAll(/[^0]/g, '').length;
 
@@ -11,6 +27,5 @@ export const getQuantity = (
 
   const quantity = [integer, quantityDecimal].filter((str) => str).join('.');
 
-  console.log('getQuantity', quantityAsset, stepSize, quantity);
-  return Number(quantity);
+  return Math.min(Number(quantity), maxQty);
 };

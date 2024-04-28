@@ -89,6 +89,7 @@ export class Spot {
       currency: 'USD',
     }).format(order.origQty * order.price);
 
+    // Пофиксить ошибку проданного количества!
     await TelegramRepository.sendMessage(
       this.chatId,
       `${order.side} ${quantity} ${pair} `,

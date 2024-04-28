@@ -1,6 +1,6 @@
 import { BinanceRepository } from '../Binance/BinanceRepository';
 import { TelegramRepository } from './TelegramRepository';
-import { Pair, pairs } from '../../config';
+import { Pair, assets, pairs } from '../../config';
 import { Graph } from '../Graph';
 
 import { sleep } from '../../includes/sleep';
@@ -102,10 +102,16 @@ export class TelegramCycle {
 
   private async sellAll(chatId: number) {
     const balances = await BinanceRepository.getBalances();
-    const balancesForSell = balances.filter((balance) => balance.free !== 0);
+    const balancesForSell = balances
+      .filter((balance) => {
+        if (balance.asset === 'USDT') return false;
+        return assets.includes(balance.asset);
+      })
+      .filter((balance) => balance.free !== 0);
 
     for (const balance of balancesForSell) {
       if (balance.asset === 'USDT') continue;
+      console.log('sellAll', balance.asset);
 
       try {
         await BinanceService.sell(
@@ -114,16 +120,30 @@ export class TelegramCycle {
         );
       } catch (error) {
         if (error instanceof ErrorInfo && error.message === 'stepSize >= qty') {
-          console.log('stepSize >= qty', balance);
+          console.log(balance.asset, error.message, error.info);
+          continue;
+        }
+        if (error instanceof ErrorInfo && error.message === 'minQty >= qty') {
+          console.log(balance.asset, error.message, error.info);
+          continue;
+        }
+
+        if (error instanceof Error && error.message === 'Invalid symbol.') {
+          console.log(balance.asset, error.message);
+          continue;
+        }
+
+        if (error instanceof ErrorInfo && error.message === 'Invalid status') {
+          console.log(balance.asset, error.message, error.info);
           continue;
         }
         throw error;
       }
 
-      await TelegramRepository.sendMessage(
-        chatId,
-        `Продажа ${balance.asset + 'USDT'} ${balance.free}`,
-      );
+      // await TelegramRepository.sendMessage(
+      //   chatId,
+      //   `Продажа ${balance.asset + 'USDT'} ${balance.free}`,
+      // );
     }
   }
 }

@@ -43,13 +43,14 @@ export class Actioner extends EntityWithEvents<{
 
   public async buy(pair: Pair, usdt: number): Promise<Order> {
     console.log('Actioner.buy');
-    const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+    const lotParams = await BinanceRepository.getLotParams(pair);
     let resultOrder;
 
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
+      let assetForOrder = usdt / currentPrice;
 
-      const quantity = getQuantity(usdt / currentPrice, stepSize);
+      const quantity = getQuantity(assetForOrder, currentPrice, lotParams);
       console.log(
         '1 BinanceService.buy newOrder',
         pair,
@@ -73,12 +74,13 @@ export class Actioner extends EntityWithEvents<{
         (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
           .free,
       );
-      if (order.isFilled) {
+      usdt -= order.cummulativeQuoteQty;
+      assetForOrder = usdt / currentPrice;
+
+      if (order.isFilled && lotParams.stepSize >= assetForOrder) {
         resultOrder = order;
         break;
       }
-
-      usdt -= order.cummulativeQuoteQty;
     }
 
     return resultOrder;
@@ -86,12 +88,12 @@ export class Actioner extends EntityWithEvents<{
 
   public async sell(pair: Pair, qty: number): Promise<Order> {
     console.log('Actioner.sell');
-    const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
+    const lotParams = await BinanceRepository.getLotParams(pair);
     let resultOrder;
 
-    if (stepSize >= qty) {
-      throw new ErrorInfo('Actioner.sell', 'stepSize >= qty', {
-        stepSize,
+    if (lotParams.stepSize >= qty) {
+      throw new ErrorInfo('Actioner.sell', 'stepSize >= qty ', {
+        stepSize: lotParams.stepSize,
         asset: qty,
       });
     }
@@ -99,13 +101,16 @@ export class Actioner extends EntityWithEvents<{
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
 
-      const validQty = getQuantity(qty, stepSize);
-      console.log(
-        '1 Actioner.sell newOrder',
+      const validQty = getQuantity(qty, currentPrice, lotParams);
+      console.log('1 Actioner.sell newOrder', {
         pair,
-        (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
-          .free,
-      );
+        free: (
+          await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset)
+        ).free,
+        lotParams,
+        validQty,
+      });
+
       const newOrder = await BinanceRepository.createOrder(
         pair,
         currentPrice,
@@ -123,12 +128,12 @@ export class Actioner extends EntityWithEvents<{
         (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
           .free,
       );
-      if (order.isFilled) {
+
+      qty -= order.executedQty;
+      if (order.isFilled && lotParams.stepSize >= qty) {
         resultOrder = order;
         break;
       }
-
-      qty -= order.executedQty;
     }
 
     SpotService.runEvent('filledSell', resultOrder);

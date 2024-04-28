@@ -17,6 +17,11 @@ type Balance = {
   locked: number;
 };
 
+export type LotParams = Record<
+  'stepSize' | 'tickSize' | 'minNotional' | 'maxNotional',
+  number
+>;
+
 export const BinanceRepository =
   new (class BinanceRepository extends Repository<object, BinanceError> {
     constructor() {
@@ -113,9 +118,7 @@ export const BinanceRepository =
       }));
     }
 
-    public async getLotParams(
-      symbol: Pair,
-    ): Promise<Record<'stepSize' | 'tickSize', number>> {
+    public async getLotParams(symbol: Pair): Promise<LotParams> {
       type PriceFilter = {
         filterType: 'PRICE_FILTER';
         tickSize: string;
@@ -125,10 +128,16 @@ export const BinanceRepository =
         stepSize: string;
       };
 
+      type NotionalFilter = {
+        filterType: 'NOTIONAL';
+        minNotional: string;
+        maxNotional: string;
+      };
+
       type ExchangeInfo = {
         symbols: {
           symbol: Pair;
-          filters: (PriceFilter | LotFilter)[];
+          filters: (PriceFilter | LotFilter | NotionalFilter)[];
         }[];
       };
 
@@ -147,10 +156,16 @@ export const BinanceRepository =
         (f): f is PriceFilter => f.filterType === 'PRICE_FILTER',
       );
 
-      if (lotSizeFilter && priceFilter)
+      const notionalFilter = symbolObject?.filters.find(
+        (f): f is NotionalFilter => f.filterType === 'NOTIONAL',
+      );
+
+      if (lotSizeFilter && priceFilter && notionalFilter)
         return {
           stepSize: Number(lotSizeFilter.stepSize),
           tickSize: Number(priceFilter.tickSize),
+          minNotional: Number(notionalFilter.minNotional),
+          maxNotional: Number(notionalFilter.maxNotional),
         };
 
       throw new Error('Filter not found');

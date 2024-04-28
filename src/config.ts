@@ -27,7 +27,6 @@ export const assets = [
   'TRX',
   'MATIC',
   'DOT',
-  'SHIB',
   'LTC',
   'AVAX',
   'XLM',
