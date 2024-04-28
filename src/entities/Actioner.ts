@@ -7,10 +7,21 @@ import { Order } from './Order';
 import { getQuantity } from './Order/getQuantity';
 import { SpotService } from './Spot/SpotService';
 
+type ActionerOptions = {
+  typeOrder?: Order['type'];
+};
+
 export class Actioner extends EntityWithEvents<{
   createdOrder: EntityEvent<Order>;
   filledSell: EntityEvent<Order>;
 }> {
+  private typeOrder;
+
+  public constructor(options: ActionerOptions = {}) {
+    super();
+    this.typeOrder = options.typeOrder || 'LIMIT';
+  }
+
   private async repeat(order: Order): Promise<Order> {
     const { symbol, orderId } = order;
     SpotService.runEvent('createdOrder', order);
@@ -50,6 +61,7 @@ export class Actioner extends EntityWithEvents<{
         currentPrice,
         'BUY',
         quantity,
+        this.typeOrder,
       );
 
       console.log('Actioner.buy newOrder', newOrder);
@@ -99,6 +111,7 @@ export class Actioner extends EntityWithEvents<{
         currentPrice,
         'SELL',
         validQty,
+        this.typeOrder,
       );
 
       console.log('Actioner.sell newOrder', newOrder);

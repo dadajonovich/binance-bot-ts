@@ -180,18 +180,23 @@ export const BinanceRepository =
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
     ): Promise<Order> {
-      const responce = await this.protectedRequest<OrderDto>(
-        'order',
-        {
-          symbol,
-          price,
-          side,
-          quantity,
-          type,
-          timeInForce,
-        },
-        { method: 'POST' },
-      );
+      const query: Record<string, any> = {
+        symbol,
+        price,
+        side,
+        quantity,
+        type,
+        timeInForce,
+      };
+
+      if (type === 'MARKET') {
+        delete query.price;
+        delete query.timeInForce;
+      }
+
+      const responce = await this.protectedRequest<OrderDto>('order', query, {
+        method: 'POST',
+      });
 
       return Order.from(responce);
     }

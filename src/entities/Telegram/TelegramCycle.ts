@@ -102,7 +102,9 @@ export class TelegramCycle {
 
   private async sellAll(chatId: number) {
     const balances = await BinanceRepository.getBalances();
-    for (const balance of balances) {
+    const balancesForSell = balances.filter((balance) => balance.free !== 0);
+
+    for (const balance of balancesForSell) {
       if (balance.asset === 'USDT') continue;
 
       try {
