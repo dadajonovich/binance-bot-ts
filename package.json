@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/index.ts",
-  "type": "module",
   "scripts": {
-    "start": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "build": "webpack --mode production --progress",
+    "bundle": "node dist/bundle.cjs"
   },
   "keywords": [],
   "author": "",
@@ -18,11 +19,16 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
     "prettier": "^3.1.0",
+    "ts-loader": "^9.5.1",
     "tsx": "^4.6.2",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-node-externals": "^3.0.0"
   },
   "dependencies": {
     "cron": "^3.1.6",
+    "dotenv": "^16.4.5",
     "sequelize": "^6.37.2",
     "sqlite3": "^5.1.7"
   }

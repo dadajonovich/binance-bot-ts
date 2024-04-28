@@ -1,22 +1,31 @@
+import { Order } from '../Order/Order';
+import { BinanceRepository } from '.';
+import { sleep } from '../../includes/sleep';
 import { Asset, Pair } from '../../config';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { sleep } from '../../includes/sleep';
-import { BinanceRepository } from '.';
-import { Order } from '../Order/Order';
 import { getQuantity } from '../Order/getQuantity';
+import { SpotService } from '../Spot/SpotService';
 
 export class BinanceService {
-  private static async repeat(order: Order): Promise<Order> {
-    if (order.isFilled) return order;
-    await sleep(1000 * 60 * 0.25);
+  protected static async handleCreateOrder(order: Order): Promise<void> {}
+  protected static async deleteOrder(orderId: number): Promise<void> {}
 
+  private static async repeat(order: Order): Promise<Order> {
     const { symbol, orderId } = order;
-    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
 
     if (order.isFilled) {
+      return order;
+    }
+    await sleep(1000 * 60 * 0.25);
+
+    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
+
+    if (currentOrder.isFilled) {
       return currentOrder;
     }
-    return await BinanceRepository.cancelOrder(symbol, orderId);
+
+    const canceledOrder = await BinanceRepository.cancelOrder(symbol, orderId);
+    return canceledOrder;
   }
 
   public static async buy(pair: Pair, usdt: number): Promise<Order> {
@@ -38,6 +47,8 @@ export class BinanceService {
       'BUY',
       quantity,
     );
+
+    await this.handleCreateOrder(newOrder);
     console.log('BinanceService.buy newOrder', newOrder);
 
     const order = await BinanceService.repeat(newOrder);
@@ -48,6 +59,8 @@ export class BinanceService {
         .free,
     );
     if (order.isFilled) return order;
+
+    await this.deleteOrder(order.orderId);
 
     return await BinanceService.buy(
       order.symbol,
@@ -60,7 +73,7 @@ export class BinanceService {
     const { stepSize, tickSize } = await BinanceRepository.getLotParams(pair);
 
     if (stepSize >= qty) {
-      throw new ErrorInfo('Order.sell', 'stepSize >= qty', {
+      throw new ErrorInfo('BinanceService.sell', 'stepSize >= qty', {
         stepSize,
         asset: qty,
       });
@@ -84,6 +97,11 @@ export class BinanceService {
 
     console.log('BinanceService.sell newOrder', newOrder);
 
+    const lastOrder = await SpotService.getLast();
+    if (lastOrder) await this.deleteOrder(lastOrder.orderId);
+
+    await this.handleCreateOrder(newOrder);
+
     const order = await BinanceService.repeat(newOrder);
     console.log(
       '2 BinanceService.sell newOrder',
@@ -91,7 +109,10 @@ export class BinanceService {
       (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset))
         .free,
     );
-    if (order.isFilled) return order;
+    if (order.isFilled) {
+      await this.deleteOrder(order.orderId);
+      return order;
+    }
 
     return await BinanceService.sell(order.symbol, qty - order.executedQty);
   }

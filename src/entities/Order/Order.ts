@@ -1,25 +1,4 @@
 import { Pair } from '../../config';
-import { sequelize } from '../../db/sequelize';
-
-import {
-  CreationOptional,
-  DataTypes,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  BelongsToManyAddAssociationsMixin,
-  BelongsToManySetAssociationsMixin,
-  BelongsToManyHasAssociationsMixin,
-  BelongsToManyGetAssociationsMixin,
-  BelongsToManyRemoveAssociationsMixin,
-  BelongsToManyCountAssociationsMixin,
-  BelongsToManyCreateAssociationMixin,
-  BelongsToManyAddAssociationMixin,
-  BelongsToManyHasAssociationMixin,
-  BelongsToManyRemoveAssociationMixin,
-  NonAttribute,
-} from 'sequelize';
-import { OrderService } from '../Binance/BinanceService';
 
 export type OrderDto = {
   symbol: Pair;

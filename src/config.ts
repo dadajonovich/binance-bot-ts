@@ -1,10 +1,4 @@
-import path from 'path';
-import { FileEditor } from './includes/FileEditor';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-export const rootDir = path.join(__dirname, '..');
+import 'dotenv/config';
 
 type Config = {
   BINANCE_API_KEY: string;
@@ -12,16 +6,11 @@ type Config = {
   TELEGRAM_BOT_TOKEN: string;
 };
 
-const getEnvConfig = (): Config => {
-  const dataEnv = FileEditor.read(path.join(rootDir, '.env'));
-
-  console.log(
-    Object.fromEntries(dataEnv.split('\n').map((item) => item.split('='))),
-  );
-  return Object.fromEntries(dataEnv.split('\n').map((item) => item.split('=')));
+export const config: Config = {
+  BINANCE_API_KEY: process.env.BINANCE_API_KEY!,
+  BINANCE_SECRET_KEY: process.env.BINANCE_SECRET_KEY!,
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN!,
 };
-
-export const config = getEnvConfig();
 
 export const telegramUrl = `https://api.telegram.org/bot${config.TELEGRAM_BOT_TOKEN}`;
 
