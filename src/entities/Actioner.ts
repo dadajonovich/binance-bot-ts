@@ -1,4 +1,4 @@
-import { type Asset, Pair } from '../config';
+import { Pair } from '../config';
 import { EntityEvent, EntityWithEvents } from '../includes/EntityWithEvents';
 import { ErrorInfo } from '../includes/ErrorInfo';
 import { sleep } from '../includes/sleep';
@@ -28,6 +28,7 @@ export class Actioner extends EntityWithEvents<{
 
   public async buy(pair: Pair, usdt: number): Promise<ActionResult> {
     console.log('Actioner.buy');
+
     const lotParams = await BinanceRepository.getLotParams(pair);
     const resultBuy: ActionResult = { symbol: pair, usdt: 0, side: 'BUY' };
 
@@ -35,6 +36,8 @@ export class Actioner extends EntityWithEvents<{
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
       let qty = usdt / currentPrice;
+
+      if (!this.qtyGreaterMin(qty, currentPrice, lotParams)) break;
 
       const order = await this.step(pair, 'BUY', qty, currentPrice, lotParams);
       if (!order) break;
@@ -53,6 +56,7 @@ export class Actioner extends EntityWithEvents<{
 
   public async sell(pair: Pair, qty: number): Promise<ActionResult> {
     console.log('Actioner.sell');
+
     const lotParams = await BinanceRepository.getLotParams(pair);
     const resultSell: ActionResult = { symbol: pair, usdt: 0, side: 'SELL' };
 
@@ -67,6 +71,8 @@ export class Actioner extends EntityWithEvents<{
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
 
+      if (!this.qtyGreaterMin(qty, currentPrice, lotParams)) break;
+
       const order = await this.step(pair, 'SELL', qty, currentPrice, lotParams);
       if (!order) break;
 
@@ -77,25 +83,16 @@ export class Actioner extends EntityWithEvents<{
     }
 
     await this.runEvent('filledSell', resultSell);
+
     return resultSell;
   }
 
-  private async repeat(order: Order): Promise<Order> {
-    const { symbol, orderId } = order;
-    await this.runEvent('createdOrder', order);
-
-    if (order.isFilled) {
-      return order;
-    }
-    await sleep(1000 * 60 * 0.25);
-
-    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
-
-    if (currentOrder.isFilled) {
-      return currentOrder;
-    }
-
-    return await BinanceRepository.cancelOrder(symbol, orderId);
+  private qtyGreaterMin(
+    qty: number,
+    currentPrice: number,
+    lotParams: LotParams,
+  ): boolean {
+    return qty > lotParams.minNotional / currentPrice;
   }
 
   private async step(
@@ -104,18 +101,8 @@ export class Actioner extends EntityWithEvents<{
     qty: number,
     currentPrice: number,
     lotParams: LotParams,
-  ): Promise<Order | null> {
-    const minQty = lotParams.minNotional / currentPrice;
-
-    if (minQty >= qty) return null;
-
+  ): Promise<Order> {
     const validQty = getQuantity(qty, currentPrice, lotParams);
-
-    console.log(
-      `1 Actioner.${side} newOrder`,
-      pair,
-      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset)).free,
-    );
 
     const newOrder = await BinanceRepository.createOrder(
       pair,
@@ -124,13 +111,16 @@ export class Actioner extends EntityWithEvents<{
       validQty,
       this.typeOrder,
     );
+    await this.runEvent('createdOrder', newOrder);
+    if (newOrder.isFilled) return newOrder;
 
-    console.log(
-      `2 Actioner.${side} newOrder`,
-      pair,
-      (await BinanceRepository.getBalances(pair.replace('USDT', '') as Asset)).free,
-    );
+    await sleep(1000 * 60 * 0.25);
 
-    return await this.repeat(newOrder);
+    const { symbol, orderId } = newOrder;
+
+    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
+    if (currentOrder.isFilled) return currentOrder;
+
+    return await BinanceRepository.cancelOrder(symbol, orderId);
   }
 }
