@@ -1,7 +1,7 @@
-import { Asset, AssetOrUSDT, Pair, binanceUrl, config } from '../../config';
+import { AssetOrUSDT, Pair, binanceUrl, config } from '../../config';
 import { Repository } from '../../includes/Repository';
 import { createHmac } from 'node:crypto';
-import { toQuery } from '../../includes/toQuery';
+import { toQuery, QueryObject } from '../../includes/toQuery';
 import { Order, OrderDto } from '../Order';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 
@@ -48,7 +48,7 @@ export const BinanceRepository =
 
     private async protectedRequest<T extends object>(
       url: string,
-      queryObject: Record<string, any> = {},
+      queryObject: QueryObject = {},
       options: RequestInit = {},
     ): Promise<T> {
       const timestamp = Date.now();
@@ -201,7 +201,7 @@ export const BinanceRepository =
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
     ): Promise<Order> {
-      const query: Record<string, any> = {
+      const query: QueryObject = {
         symbol,
         price,
         side,

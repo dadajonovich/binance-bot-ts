@@ -4,10 +4,10 @@ import { Graph } from '../Graph';
 import { TelegramRepository } from '../Telegram';
 import { Asset, Pair, pairs } from '../../config';
 import { CronTime } from 'cron';
-import { Order } from '../Order';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 import { SpotService } from './SpotService';
 import { LastOrder } from '../LastOrder';
+import { ActionResult } from '../Actioner';
 
 export class Spot {
   private chatId: number;
@@ -74,25 +74,24 @@ export class Spot {
   }
 
   private async action(pair: Pair, isBuy: boolean) {
-    let order;
+    let result;
 
     if (isBuy) {
-      console.log('Spot buy');
-      order = await this.buy(pair);
+      result = await this.buy(pair);
     } else {
-      console.log('Spot sell');
-      order = await this.sell(pair);
+      result = await this.sell(pair);
     }
+
+    const { side, symbol, usdt } = result;
 
     const quantity = new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'USD',
-    }).format(order.origQty * order.price);
+    }).format(usdt);
 
-    // Пофиксить ошибку проданного количества!
     await TelegramRepository.sendMessage(
       this.chatId,
-      `${order.side} ${quantity} ${pair} `,
+      `${side} ${symbol} ${quantity}`,
     );
   }
 
@@ -126,27 +125,27 @@ export class Spot {
     return false;
   }
 
-  private async buy(pair: Pair): Promise<Order> {
+  private async buy(pair: Pair): Promise<ActionResult> {
     console.log('Spot.buy');
     const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
     if (usdt > 10) {
-      const order = await SpotService.buy(pair, 1000);
-      return order;
+      const resultBuy = await SpotService.buy(pair, 1000);
+      return resultBuy;
     } else {
       throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
     }
   }
 
-  private async sell(pair: Pair): Promise<Order> {
+  private async sell(pair: Pair): Promise<ActionResult> {
     console.log('Spot.sell');
     const { free } = await BinanceRepository.getBalances(
       pair.replace('USDT', '') as Asset,
     );
     console.log('Spot.sell asset', pair, free);
 
-    const order = await SpotService.sell(pair, free);
+    const resultSell = await SpotService.sell(pair, free);
 
-    return order;
+    return resultSell;
   }
 }

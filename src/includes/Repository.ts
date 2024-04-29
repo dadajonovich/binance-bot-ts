@@ -1,4 +1,4 @@
-import { toQuery } from './toQuery';
+import { toQuery, QueryObject } from './toQuery';
 
 export abstract class Repository<
   ResponceObject extends object,
@@ -14,7 +14,7 @@ export abstract class Repository<
 
   protected async request<T extends ResponceObject>(
     url: string,
-    queryObject: Record<string, any> = {},
+    queryObject: QueryObject = {},
     options: RequestInit = {},
   ): Promise<T> {
     try {

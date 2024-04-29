@@ -1,7 +1,7 @@
 export type EntityEvent<T> = T;
 
 export abstract class EntityWithEvents<
-  EventMap extends Record<string, EntityEvent<any>>,
+  EventMap extends Record<string, EntityEvent<unknown>>,
 > {
   private handlers: {
     eventName: keyof EventMap;

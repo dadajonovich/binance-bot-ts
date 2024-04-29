@@ -1,11 +1,11 @@
 export class ErrorInfo extends Error {
-  public info: any;
+  public info: unknown;
   public sender: string;
 
   public constructor(
     sender: string,
     message: string,
-    info?: any,
+    info?: unknown,
     stack?: string,
   ) {
     super(message);

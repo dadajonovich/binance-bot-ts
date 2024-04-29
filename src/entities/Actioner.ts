@@ -4,20 +4,20 @@ import { ErrorInfo } from '../includes/ErrorInfo';
 import { sleep } from '../includes/sleep';
 import { BinanceRepository } from './Binance';
 import { Order, getQuantity } from './Order';
-import { SpotService } from './Spot';
 
 type ActionerOptions = {
   typeOrder?: Order['type'];
 };
 
-type ResultAction = {
+export type ActionResult = {
   symbol: Pair;
-  qty: number;
+  usdt: number;
+  side: 'BUY' | 'SELL';
 };
 
 export class Actioner extends EntityWithEvents<{
   createdOrder: EntityEvent<Order>;
-  filledSell: EntityEvent<Order>;
+  filledSell: EntityEvent<ActionResult>;
 }> {
   private typeOrder;
 
@@ -28,7 +28,7 @@ export class Actioner extends EntityWithEvents<{
 
   private async repeat(order: Order): Promise<Order> {
     const { symbol, orderId } = order;
-    SpotService.runEvent('createdOrder', order);
+    this.runEvent('createdOrder', order);
 
     if (order.isFilled) {
       return order;
@@ -45,14 +45,20 @@ export class Actioner extends EntityWithEvents<{
     return canceledOrder;
   }
 
-  public async buy(pair: Pair, usdt: number): Promise<ResultAction> {
+  public async buy(pair: Pair, usdt: number): Promise<ActionResult> {
     console.log('Actioner.buy');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    const resultBuy: ResultAction = { symbol: pair, qty: 0 };
+    const resultBuy: ActionResult = { symbol: pair, usdt: 0, side: 'BUY' };
 
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
       let assetForOrder = usdt / currentPrice;
+
+      const minQty = lotParams.minNotional / currentPrice;
+
+      if (minQty >= assetForOrder) {
+        break;
+      }
 
       const quantity = getQuantity(assetForOrder, currentPrice, lotParams);
       console.log(
@@ -79,7 +85,7 @@ export class Actioner extends EntityWithEvents<{
           .free,
       );
       usdt -= order.cummulativeQuoteQty;
-      resultBuy.qty += order.cummulativeQuoteQty;
+      resultBuy.usdt += order.cummulativeQuoteQty;
       assetForOrder = usdt / currentPrice;
 
       if (order.isFilled && lotParams.stepSize >= assetForOrder) {
@@ -90,10 +96,10 @@ export class Actioner extends EntityWithEvents<{
     return resultBuy;
   }
 
-  public async sell(pair: Pair, qty: number): Promise<Order> {
+  public async sell(pair: Pair, qty: number): Promise<ActionResult> {
     console.log('Actioner.sell');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    const resultSell: ResultAction = { symbol: pair, qty: 0 };
+    const resultSell: ActionResult = { symbol: pair, usdt: 0, side: 'SELL' };
 
     if (lotParams.stepSize >= qty) {
       throw new ErrorInfo('Actioner.sell', 'stepSize >= qty ', {
@@ -104,6 +110,12 @@ export class Actioner extends EntityWithEvents<{
 
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
+
+      const minQty = lotParams.minNotional / currentPrice;
+
+      if (minQty >= qty) {
+        break;
+      }
 
       const validQty = getQuantity(qty, currentPrice, lotParams);
       console.log('1 Actioner.sell newOrder', {
@@ -134,13 +146,13 @@ export class Actioner extends EntityWithEvents<{
       );
 
       qty -= order.executedQty;
-      resultSell.qty += order.executedQty;
+      resultSell.usdt += order.executedQty * currentPrice;
       if (order.isFilled && lotParams.stepSize >= qty) {
         break;
       }
     }
 
-    SpotService.runEvent('filledSell', order);
+    this.runEvent('filledSell', resultSell);
     return resultSell;
   }
 }

@@ -1,4 +1,3 @@
-import { ErrorInfo } from '../../includes/ErrorInfo';
 import { LotParams } from '../Binance';
 
 export const getQuantity = (
@@ -6,17 +5,9 @@ export const getQuantity = (
   price: number,
   lotParams: LotParams,
 ): number => {
-  const { stepSize, maxNotional, minNotional } = lotParams;
+  const { stepSize, maxNotional } = lotParams;
 
-  const minQty = minNotional / price;
   const maxQty = maxNotional / price;
-
-  if (minQty >= qty) {
-    throw new ErrorInfo('getQuantity', 'minQty >= qty', {
-      qty,
-      minQty,
-    });
-  }
 
   const [integer, decimal] = String(qty).split('.');
   if (decimal === undefined) return Math.min(Number(integer), maxQty);

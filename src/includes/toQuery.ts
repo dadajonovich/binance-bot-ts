@@ -1,4 +1,6 @@
-export function toQuery(args: Record<string, any>): string {
+export type QueryObject = Record<string, string | number | undefined | null>;
+
+export function toQuery(args: QueryObject): string {
   if (!args) return '';
 
   const strs: string[] = Object.entries(args)

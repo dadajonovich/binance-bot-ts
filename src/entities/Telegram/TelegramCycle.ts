@@ -2,7 +2,6 @@ import { BinanceRepository } from '../Binance';
 import { TelegramRepository } from '.';
 import { Pair, assets, pairs } from '../../config';
 import { Graph } from '../Graph';
-
 import { sleep } from '../../includes/sleep';
 import { Spot } from '../Spot';
 import { BinanceService } from '../Binance';
@@ -36,11 +35,11 @@ export class TelegramCycle {
             break;
 
           case '/orders':
-            await this.getOpenOrders(updateObject.message.chat.id);
+            await this.getOpenOrders();
             break;
 
           case '/sellAll':
-            await this.sellAll(updateObject.message.chat.id);
+            await this.sellAll();
             break;
 
           case '/start':
@@ -95,12 +94,12 @@ export class TelegramCycle {
     await trader.start();
   }
 
-  private async getOpenOrders(chatId: number) {
+  private async getOpenOrders() {
     const orders = await BinanceRepository.getOpenOrders();
     console.log(orders);
   }
 
-  private async sellAll(chatId: number) {
+  private async sellAll() {
     const balances = await BinanceRepository.getBalances();
     const balancesForSell = balances
       .filter((balance) => {
@@ -120,10 +119,6 @@ export class TelegramCycle {
         );
       } catch (error) {
         if (error instanceof ErrorInfo && error.message === 'stepSize >= qty') {
-          console.log(balance.asset, error.message, error.info);
-          continue;
-        }
-        if (error instanceof ErrorInfo && error.message === 'minQty >= qty') {
           console.log(balance.asset, error.message, error.info);
           continue;
         }
