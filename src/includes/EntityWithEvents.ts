@@ -5,6 +5,7 @@ export abstract class EntityWithEvents<
 > {
   private handlers: {
     eventName: keyof EventMap;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (event: EntityEvent<any>) => Promise<void>;
   }[] = [];
 

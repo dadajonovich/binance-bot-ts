@@ -2,7 +2,7 @@ import { Asset, Pair } from '../config';
 import { EntityEvent, EntityWithEvents } from '../includes/EntityWithEvents';
 import { ErrorInfo } from '../includes/ErrorInfo';
 import { sleep } from '../includes/sleep';
-import { BinanceRepository } from './Binance';
+import { BinanceRepository, LotParams } from './Binance';
 import { Order, getQuantity } from './Order';
 
 type ActionerOptions = {
@@ -13,7 +13,76 @@ export type ActionResult = {
   symbol: Pair;
   usdt: number;
   side: 'BUY' | 'SELL';
+
 };
+
+class Action {
+
+public typeOrder
+
+  public constructor(
+    public symbol: Pair,
+    public usdt: number,
+    public side: 'BUY' | 'SELL',
+    options: ActionerOptions
+  ) {this.typeOrder = options.typeOrder || 'LIMIT';}
+
+
+private async step(qty: number,lotParams: LotParams) {
+
+
+
+
+
+  const minQty = lotParams.minNotional / currentPrice;
+
+  if (minQty >= qty) {
+    break;
+  }
+
+  const quantity = getQuantity(qty, currentPrice, lotParams);
+  console.log(
+    '1 BinanceService.buy newOrder',
+    this.symbol,
+    (await BinanceRepository.getBalances(this.symbol.replace('USDT', '') as Asset))
+      .free,
+  );
+  const newOrder = await BinanceRepository.createOrder(
+    this.symbol,
+    currentPrice,
+    this.side,
+    quantity,
+    this.typeOrder,
+  );
+
+  console.log('Actioner.buy newOrder', newOrder);
+
+  const order = await this.repeat(newOrder);
+  console.log(
+    '2 Actioner.buy newOrder',
+    this.symbol,
+    (await BinanceRepository.getBalances(this.symbol.replace('USDT', '') as Asset))
+      .free,
+  );
+
+}
+
+  public async run(qty: number) {
+    console.log('Actioner.buy');
+    const lotParams = await BinanceRepository.getLotParams(pair);
+    const resultBuy: ActionResult = { symbol: pair, usdt: 0, side: 'BUY' };
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const currentPrice = await BinanceRepository.getPrice(this.symbol);
+      const qty = this.side === "BUY" ? qty / currentPrice : qty
+ this.step(qty, lotParams)
+    }
+
+    return resultBuy;
+  }
+  }
+}
 
 export class Actioner extends EntityWithEvents<{
   createdOrder: EntityEvent<Order>;
@@ -50,6 +119,7 @@ export class Actioner extends EntityWithEvents<{
     const lotParams = await BinanceRepository.getLotParams(pair);
     const resultBuy: ActionResult = { symbol: pair, usdt: 0, side: 'BUY' };
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
       let assetForOrder = usdt / currentPrice;
@@ -108,6 +178,7 @@ export class Actioner extends EntityWithEvents<{
       });
     }
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
 
