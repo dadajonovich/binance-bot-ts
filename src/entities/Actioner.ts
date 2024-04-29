@@ -3,12 +3,16 @@ import { EntityEvent, EntityWithEvents } from '../includes/EntityWithEvents';
 import { ErrorInfo } from '../includes/ErrorInfo';
 import { sleep } from '../includes/sleep';
 import { BinanceRepository } from './Binance';
-import { Order } from './Order';
-import { getQuantity } from './Order/getQuantity';
-import { SpotService } from './Spot/SpotService';
+import { Order, getQuantity } from './Order';
+import { SpotService } from './Spot';
 
 type ActionerOptions = {
   typeOrder?: Order['type'];
+};
+
+type ResultAction = {
+  symbol: Pair;
+  qty: number;
 };
 
 export class Actioner extends EntityWithEvents<{
@@ -41,10 +45,10 @@ export class Actioner extends EntityWithEvents<{
     return canceledOrder;
   }
 
-  public async buy(pair: Pair, usdt: number): Promise<Order> {
+  public async buy(pair: Pair, usdt: number): Promise<ResultAction> {
     console.log('Actioner.buy');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    let resultOrder;
+    let resultBuy: ResultAction = { symbol: pair, qty: 0 };
 
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
@@ -75,21 +79,21 @@ export class Actioner extends EntityWithEvents<{
           .free,
       );
       usdt -= order.cummulativeQuoteQty;
+      resultBuy.qty += order.cummulativeQuoteQty;
       assetForOrder = usdt / currentPrice;
 
       if (order.isFilled && lotParams.stepSize >= assetForOrder) {
-        resultOrder = order;
         break;
       }
     }
 
-    return resultOrder;
+    return resultBuy;
   }
 
   public async sell(pair: Pair, qty: number): Promise<Order> {
     console.log('Actioner.sell');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    let resultOrder;
+    let resultSell: ResultAction = { symbol: pair, qty: 0 };
 
     if (lotParams.stepSize >= qty) {
       throw new ErrorInfo('Actioner.sell', 'stepSize >= qty ', {
@@ -130,13 +134,13 @@ export class Actioner extends EntityWithEvents<{
       );
 
       qty -= order.executedQty;
+      resultSell.qty += order.executedQty;
       if (order.isFilled && lotParams.stepSize >= qty) {
-        resultOrder = order;
         break;
       }
     }
 
-    SpotService.runEvent('filledSell', resultOrder);
-    return resultOrder;
+    SpotService.runEvent('filledSell', order);
+    return resultSell;
   }
 }

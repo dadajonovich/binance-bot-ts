@@ -1,11 +1,11 @@
-import { BinanceRepository } from '../Binance/BinanceRepository';
-import { TelegramRepository } from './TelegramRepository';
+import { BinanceRepository } from '../Binance';
+import { TelegramRepository } from '.';
 import { Pair, assets, pairs } from '../../config';
 import { Graph } from '../Graph';
 
 import { sleep } from '../../includes/sleep';
 import { Spot } from '../Spot';
-import { BinanceService } from '../Binance/BinanceService';
+import { BinanceService } from '../Binance';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 
 export class TelegramCycle {

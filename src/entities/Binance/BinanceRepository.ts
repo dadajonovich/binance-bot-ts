@@ -3,8 +3,14 @@ import { Repository } from '../../includes/Repository';
 import { createHmac } from 'node:crypto';
 import { toQuery } from '../../includes/toQuery';
 import { Order, OrderDto } from '../Order';
-import { Kline } from '../Kline';
 import { ErrorInfo } from '../../includes/ErrorInfo';
+
+export type Kline = {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+};
 
 type BinanceError = {
   code: number;

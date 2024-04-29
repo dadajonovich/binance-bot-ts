@@ -1,4 +1,4 @@
-import { Order } from '../Order/Order';
+import { Order } from '../Order';
 import { LastOrder } from '../LastOrder';
 import { Actioner } from '../Actioner';
 

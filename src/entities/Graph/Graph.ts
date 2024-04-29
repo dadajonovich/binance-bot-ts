@@ -1,7 +1,6 @@
 import { Pair } from '../../config';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { BinanceRepository } from '../Binance/BinanceRepository';
-import { Kline } from '../Kline';
+import { BinanceRepository, Kline } from '../Binance';
 
 export class Graph {
   private pair: string;
