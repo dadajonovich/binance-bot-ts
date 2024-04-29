@@ -48,7 +48,7 @@ export class Actioner extends EntityWithEvents<{
   public async buy(pair: Pair, usdt: number): Promise<ResultAction> {
     console.log('Actioner.buy');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    let resultBuy: ResultAction = { symbol: pair, qty: 0 };
+    const resultBuy: ResultAction = { symbol: pair, qty: 0 };
 
     while (true) {
       const currentPrice = await BinanceRepository.getPrice(pair);
@@ -93,7 +93,7 @@ export class Actioner extends EntityWithEvents<{
   public async sell(pair: Pair, qty: number): Promise<Order> {
     console.log('Actioner.sell');
     const lotParams = await BinanceRepository.getLotParams(pair);
-    let resultSell: ResultAction = { symbol: pair, qty: 0 };
+    const resultSell: ResultAction = { symbol: pair, qty: 0 };
 
     if (lotParams.stepSize >= qty) {
       throw new ErrorInfo('Actioner.sell', 'stepSize >= qty ', {
