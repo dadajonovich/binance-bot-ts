@@ -5,8 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "webpack --mode production --progress",
-    "bundle": "node dist/bundle.cjs"
+    "build": "tsc && cp .env dist/",
+    "prod": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
