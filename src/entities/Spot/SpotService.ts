@@ -1,33 +1,45 @@
 import { Order } from '../Order';
 import { LastOrder } from '../LastOrder';
-import { Actioner } from '../Actioner';
+import { Action, type ActionResult } from '../Action';
+import { Pair } from '../../config';
 
-export const SpotService = new (class SpotService extends Actioner {
-  public constructor() {
-    super();
-    this.addEventListener(
-      'createdOrder',
-      async (order: Order): Promise<void> => {
-        await this.deleteLastOrder();
+export class SpotService {
+  public static async buy(pair: Pair, usdt: number): Promise<ActionResult> {
+    const action = await Action.create(pair);
 
-        console.log('event createdOrder');
-        const { symbol, orderId } = order;
-        await LastOrder.create({ symbol, orderId });
-      },
-    );
+    action.addEventListener('createdOrder', SpotService.recreate);
 
-    this.addEventListener('filledSell', async (): Promise<void> => {
-      await this.deleteLastOrder();
-    });
+    await action.buy(usdt);
+
+    return action.result;
   }
 
-  public async deleteLastOrder() {
-    const lastOrder = await this.getLast();
+  public static async sell(pair: Pair, qty: number): Promise<ActionResult> {
+    const action = await Action.create(pair);
+
+    action.addEventListener('createdOrder', SpotService.recreate);
+    action.addEventListener('filled', SpotService.deleteLastOrder);
+
+    await action.sell(qty);
+
+    return action.result;
+  }
+
+  public static async deleteLastOrder() {
+    const lastOrder = await SpotService.getLast();
 
     await lastOrder?.destroy();
   }
 
-  public async getLast() {
+  public static async getLast() {
     return await LastOrder.findOne();
   }
-})();
+
+  private static async recreate(order: Order): Promise<void> {
+    await SpotService.deleteLastOrder();
+
+    console.log('event createdOrder');
+    const { symbol, orderId } = order;
+    await LastOrder.create({ symbol, orderId });
+  }
+}

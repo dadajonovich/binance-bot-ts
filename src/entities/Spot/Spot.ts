@@ -1,13 +1,12 @@
-import { CronJob } from 'cron';
+import { CronJob, CronTime } from 'cron';
 import { BinanceRepository } from '../Binance';
 import { Graph } from '../Graph';
 import { TelegramRepository } from '../Telegram';
 import { Asset, Pair, pairs } from '../../config';
-import { CronTime } from 'cron';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 import { SpotService } from './SpotService';
 import { LastOrder } from '../LastOrder';
-import { ActionResult } from '../Actioner';
+import type { ActionResult } from '../Action';
 
 export class Spot {
   private chatId: number;
@@ -82,23 +81,20 @@ export class Spot {
       result = await this.sell(pair);
     }
 
-    const { side, symbol, usdt } = result;
-
     const quantity = new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'USD',
-    }).format(usdt);
+    }).format(result.usdt);
 
     await TelegramRepository.sendMessage(
       this.chatId,
-      `${side} ${symbol} ${quantity}`,
+      `${result.side} ${result.pair} ${quantity}`,
     );
   }
 
   private async toPairForAction(pair: Pair | null): Promise<Pair | null> {
     if (!pair) {
-      const pairBySignal = await this.searchBuy();
-      return pairBySignal;
+      return await this.searchBuy();
     } else {
       const sellSignal = await this.toSellSignal(pair);
 
@@ -109,32 +105,23 @@ export class Spot {
   private async searchBuy(): Promise<Pair | null> {
     for (const pair of pairs) {
       const graph = await Graph.createByPair(pair);
-      if (graph.buySignal) {
-        return pair;
-      }
+      if (graph.buySignal) return pair;
     }
     return null;
   }
 
   private async toSellSignal(pair: Pair): Promise<boolean> {
     const graph = await Graph.createByPair(pair);
-    if (graph.sellSignal) {
-      return true;
-    }
-
-    return false;
+    return graph.sellSignal;
   }
 
   private async buy(pair: Pair): Promise<ActionResult> {
     console.log('Spot.buy');
     const { free: usdt } = await BinanceRepository.getBalances('USDT');
 
-    if (usdt > 10) {
-      const resultBuy = await SpotService.buy(pair, 1000);
-      return resultBuy;
-    } else {
-      throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
-    }
+    if (usdt > 10) return await SpotService.buy(pair, 1000);
+
+    throw new ErrorInfo('Spot.buy', 'USDT < 10', { balanceUsdt: usdt });
   }
 
   private async sell(pair: Pair): Promise<ActionResult> {
@@ -144,8 +131,6 @@ export class Spot {
     );
     console.log('Spot.sell asset', pair, free);
 
-    const resultSell = await SpotService.sell(pair, free);
-
-    return resultSell;
+    return await SpotService.sell(pair, free);
   }
 }

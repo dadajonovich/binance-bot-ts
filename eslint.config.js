@@ -9,6 +9,8 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   eslintPluginPrettierRecommended,
   {
-    rules: {},
+    rules: {
+      'prettier/prettier': ['error', { endOfLine: 'crlf' }],
+    },
   },
 );

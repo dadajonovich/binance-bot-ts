@@ -4,11 +4,12 @@ import { Pair, assets, pairs } from '../../config';
 import { Graph } from '../Graph';
 import { sleep } from '../../includes/sleep';
 import { Spot } from '../Spot';
-import { BinanceService } from '../Binance';
 import { ErrorInfo } from '../../includes/ErrorInfo';
+import { Action } from '../Action';
 
 export class TelegramCycle {
   public async start() {
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         await this.run();
@@ -113,10 +114,9 @@ export class TelegramCycle {
       console.log('sellAll', balance.asset);
 
       try {
-        await BinanceService.sell(
-          (balance.asset + 'USDT') as Pair,
-          balance.free,
-        );
+        const pair = (balance.asset + 'USDT') as Pair;
+        const action = await Action.create(pair, { typeOrder: 'MARKET' });
+        await action.sell(balance.free);
       } catch (error) {
         if (error instanceof ErrorInfo && error.message === 'stepSize >= qty') {
           console.log(balance.asset, error.message, error.info);
