@@ -10,7 +10,7 @@ export default tseslint.config(
   eslintPluginPrettierRecommended,
   {
     rules: {
-      'prettier/prettier': ['error', { endOfLine: 'crlf' }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
 );

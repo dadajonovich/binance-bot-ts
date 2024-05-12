@@ -72,7 +72,7 @@ export class Graph {
     const hvPrevious = this.hv.at(-2);
     if (!hvPrevious)
       throw new ErrorInfo(
-        'Graph.createBuySignal',
+        'Graph.createSellSignal',
         'Недостаточная длина массива hv',
       );
 
@@ -85,7 +85,7 @@ export class Graph {
 
   private getKama(data: number[], len1 = 10, len2 = 2, len3 = 30): number[] {
     if (data.length < len3)
-      throw new ErrorInfo('Graph.getKama', 'Недостаточная длина массива!', {
+      throw new ErrorInfo('Graph.getKama', 'Недостаточная длина массива', {
         data,
         len1,
         len2,

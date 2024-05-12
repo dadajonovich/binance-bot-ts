@@ -1,11 +1,10 @@
 import { Order } from '../Order';
-import { LastOrder } from '../LastOrder';
-import { Action, type ActionResult } from '../Action';
+import { Executor, type ActionResult } from '../Executor';
 import { Pair } from '../../config';
 
 export class SpotService {
   public static async buy(pair: Pair, usdt: number): Promise<ActionResult> {
-    const action = await Action.create(pair);
+    const action = await Executor.create(pair);
 
     action.addEventListener('createdOrder', SpotService.recreate);
 
@@ -15,7 +14,7 @@ export class SpotService {
   }
 
   public static async sell(pair: Pair, qty: number): Promise<ActionResult> {
-    const action = await Action.create(pair);
+    const action = await Executor.create(pair);
 
     action.addEventListener('createdOrder', SpotService.recreate);
     action.addEventListener('filled', SpotService.deleteLastOrder);

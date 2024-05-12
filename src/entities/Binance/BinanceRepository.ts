@@ -177,11 +177,11 @@ export const BinanceRepository =
       throw new Error('Filter not found');
     }
 
-    public async getOpenOrders(symbol?: Pair): Promise<Order[]> {
+    public async getOpenOrders(symbol?: Pair): Promise<OrderDto[]> {
       const responce = await this.protectedRequest<OrderDto[]>('openOrders', {
         symbol,
       });
-      return responce.map((order) => Order.from(order));
+      return responce;
     }
 
     public async getPrice(symbol: Pair): Promise<number> {
@@ -200,7 +200,7 @@ export const BinanceRepository =
       quantity: number,
       type: Order['type'] = 'LIMIT',
       timeInForce = 'GTC',
-    ): Promise<Order> {
+    ): Promise<OrderDto> {
       const query: QueryObject = {
         symbol,
         price,
@@ -219,10 +219,10 @@ export const BinanceRepository =
         method: 'POST',
       });
 
-      return Order.from(responce);
+      return responce;
     }
 
-    public async cancelOrder(symbol: Pair, orderId: number): Promise<Order> {
+    public async cancelOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
       try {
         const responce = await this.protectedRequest<OrderDto>(
           'order',
@@ -230,7 +230,7 @@ export const BinanceRepository =
           { method: 'DELETE' },
         );
 
-        return Order.from(responce);
+        return responce;
       } catch (error) {
         if (error instanceof Error && error.message === 'Unknown order sent.')
           return await this.getOrder(symbol, orderId);
@@ -238,7 +238,7 @@ export const BinanceRepository =
       }
     }
 
-    public async getOrder(symbol: Pair, orderId: number): Promise<Order> {
+    public async getOrder(symbol: Pair, orderId: number): Promise<OrderDto> {
       const [order] = await this.protectedRequest<OrderDto[]>('allOrders', {
         symbol,
         orderId,
@@ -249,6 +249,6 @@ export const BinanceRepository =
           'Запрашиваемый ордер отсутствует в Binance',
           { orderId },
         );
-      return Order.from(order);
+      return order;
     }
   })();

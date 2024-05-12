@@ -5,7 +5,7 @@ import { Graph } from '../Graph';
 import { sleep } from '../../includes/sleep';
 import { Spot } from '../Spot';
 import { ErrorInfo } from '../../includes/ErrorInfo';
-import { Action } from '../Action';
+import { Executor } from '../Executor';
 
 export class TelegramCycle {
   public async start() {
@@ -115,7 +115,7 @@ export class TelegramCycle {
 
       try {
         const pair = (balance.asset + 'USDT') as Pair;
-        const action = await Action.create(pair, { typeOrder: 'MARKET' });
+        const action = await Executor.create(pair, { typeOrder: 'MARKET' });
         await action.sell(balance.free);
       } catch (error) {
         if (error instanceof ErrorInfo && error.message === 'stepSize >= qty') {

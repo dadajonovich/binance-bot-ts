@@ -15,7 +15,7 @@ export type ActionResult = {
   usdt: number;
 };
 
-export class Action extends EntityWithEvents<{
+export class Executor extends EntityWithEvents<{
   createdOrder: Order;
   filled: void;
 }> {
@@ -23,14 +23,17 @@ export class Action extends EntityWithEvents<{
   private lotParams: LotParams;
   private readonly pair: Pair;
   private usdt: number = 0;
+  private _qty?: number;
+  private _currentPrice?: number;
+  private _order?: Order;
 
   public static async create(
     pair: Pair,
     options: OrderOptions = {},
-  ): Promise<Action> {
+  ): Promise<Executor> {
     const lotParams = await BinanceRepository.getLotParams(pair);
 
-    return new Action(pair, lotParams, options);
+    return new Executor(pair, lotParams, options);
   }
 
   private constructor(
@@ -63,9 +66,11 @@ export class Action extends EntityWithEvents<{
       this.order = order;
 
       this.usdt += order.cummulativeQuoteQty;
-
       usdtQty -= order.cummulativeQuoteQty;
       this.qty = usdtQty / this.currentPrice;
+
+      // this.usdt += order.executedQty * this.currentPrice;
+      // this.qty -= order.executedQty;
 
       if (this.isSuccess) break;
     }
@@ -97,7 +102,6 @@ export class Action extends EntityWithEvents<{
       this.order = order;
 
       this.usdt += order.executedQty * this.currentPrice;
-
       this.qty -= order.executedQty;
 
       if (this.isSuccess) break;
@@ -157,8 +161,6 @@ export class Action extends EntityWithEvents<{
     return Math.min(Number(quantity), maxQty);
   }
 
-  private _currentPrice?: number;
-
   private get currentPrice(): number {
     const { _currentPrice } = this;
 
@@ -172,12 +174,9 @@ export class Action extends EntityWithEvents<{
 
     return _currentPrice;
   }
-
   private set currentPrice(value: number) {
     this._currentPrice = value;
   }
-
-  private _qty?: number;
 
   private get qty(): number {
     const { _qty } = this;
@@ -188,12 +187,9 @@ export class Action extends EntityWithEvents<{
 
     return _qty;
   }
-
   private set qty(value: number) {
     this._qty = value;
   }
-
-  private _order?: Order;
 
   private get order(): Order {
     const { _order } = this;
@@ -204,7 +200,6 @@ export class Action extends EntityWithEvents<{
 
     return _order;
   }
-
   private set order(value: Order) {
     this._order = value;
   }

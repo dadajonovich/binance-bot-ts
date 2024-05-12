@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/index.ts",
-  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && cp .env dist/",
     "prod": "node dist/index.js",
-    "lint": "npx eslint . --fix"
+    "lint": "npx eslint ./src",
+    "lint:fix": "npx eslint ./src --fix"
   },
   "keywords": [],
   "author": "",

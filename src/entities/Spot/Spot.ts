@@ -5,17 +5,28 @@ import { TelegramRepository } from '../Telegram';
 import { Asset, Pair, pairs } from '../../config';
 import { ErrorInfo } from '../../includes/ErrorInfo';
 import { SpotService } from './SpotService';
-import { LastOrder } from '../LastOrder';
-import type { ActionResult } from '../Action';
+import { ActionResult } from '../Executor';
+import { OrderService } from '../Order/OrderService';
+import { Order } from '../Order';
+
+enum Mode {
+  buy,
+  sell,
+  unknown,
+}
 
 export class Spot {
   private chatId: number;
+  private targetPair: Pair | null = null;
+  private mode: Mode = Mode.unknown;
 
   public constructor(chatId: number) {
     this.chatId = chatId;
   }
 
   public async start() {
+    this.mode = await this.createMode();
+
     const buyTime = '*/15 * * * * *';
 
     const sellTime = '*/15 * * * * *';
@@ -27,14 +38,10 @@ export class Spot {
         console.log('Cron stop');
         cronJob.stop();
         try {
-          const lastOrder = await SpotService.getLast();
-          const isBuy = await this.isBuy(lastOrder);
+          cronJob.setTime(new CronTime(this.isBuy() ? buyTime : sellTime));
+          const lastOrder = await OrderService.getLastOrder();
 
-          cronJob.setTime(new CronTime(isBuy ? buyTime : sellTime));
-
-          const pairForAction = await this.toPairForAction(
-            lastOrder?.symbol || null,
-          );
+          const pairForAction = await this.toPairForAction(lastOrder);
           if (pairForAction) {
             await this.action(pairForAction, isBuy);
           }
@@ -56,20 +63,30 @@ export class Spot {
     );
   }
 
-  private async isBuy(lastOrder: LastOrder | null): Promise<boolean> {
-    if (lastOrder === null) return true;
+  private isBuy(): boolean {
+    if (Mode.sell) return false;
+    if (Mode.buy) return true;
+
+    throw new ErrorInfo('Spot.isBuy', 'Неизвестный режим', { mode: this.mode });
+  }
+
+  private async createMode(): Promise<Mode> {
+    const lastOrder = await SpotService.getLast();
+
+    if (lastOrder === null) return Mode.buy;
 
     const { symbol, orderId } = lastOrder;
     const order = await BinanceRepository.getOrder(symbol, orderId);
 
-    const isPartiallyFilled = order.status === 'PARTIALLY_FILLED';
+    const isFilled = order.status === 'FILLED';
+
     const isSideBuy = order.side === 'BUY';
-    const isNew = order.status === 'NEW';
+    const isSideSell = order.side === 'SELL';
 
-    if (isSideBuy && (isPartiallyFilled || isNew)) return true;
-    if (!isSideBuy && (!isPartiallyFilled || !isNew)) return true;
+    if (isSideBuy && !isFilled) return Mode.buy;
+    if (isSideSell && isFilled) return Mode.buy;
 
-    return false;
+    return Mode.sell;
   }
 
   private async action(pair: Pair, isBuy: boolean) {
@@ -92,14 +109,13 @@ export class Spot {
     );
   }
 
-  private async toPairForAction(pair: Pair | null): Promise<Pair | null> {
-    if (!pair) {
+  private async toPairForAction(lastOrder: Order | null): Promise<Pair | null> {
+    if (!lastOrder) {
       return await this.searchBuy();
-    } else {
-      const sellSignal = await this.toSellSignal(pair);
-
-      return sellSignal ? pair : null;
     }
+    const sellSignal = await this.toSellSignal(lastOrder.symbol);
+
+    return sellSignal ? lastOrder.symbol : null;
   }
 
   private async searchBuy(): Promise<Pair | null> {
