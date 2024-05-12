@@ -23,7 +23,6 @@ export class Executor extends EntityWithEvents<{
   private lotParams: LotParams;
   private readonly pair: Pair;
   private usdt: number = 0;
-  private _qty?: number;
   private _currentPrice?: number;
   private _order?: Order;
 
@@ -52,28 +51,29 @@ export class Executor extends EntityWithEvents<{
     const { pair } = this;
 
     console.log('Action.buy');
+    let muchUsdt = usdtQty;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       this.currentPrice = await BinanceRepository.getPrice(pair);
-      this.qty = usdtQty / this.currentPrice;
+      const qty = this.usdtToQty(muchUsdt);
 
-      if (!this.qtyGreaterMin) break;
+      if (!this.isQtyGreaterMin(qty)) break;
 
-      const order = await this.execute('BUY');
+      const order = await this.execute('BUY', qty);
       if (!order) break;
 
       this.order = order;
+      muchUsdt -= order.cummulativeQuoteQty;
 
-      this.usdt += order.cummulativeQuoteQty;
-      usdtQty -= order.cummulativeQuoteQty;
-      this.qty = usdtQty / this.currentPrice;
-
-      // this.usdt += order.executedQty * this.currentPrice;
-      // this.qty -= order.executedQty;
-
-      if (this.isSuccess) break;
+      if (this.isSuccess(this.usdtToQty(muchUsdt))) break;
     }
+
+    this.usdt = usdtQty - muchUsdt;
+  }
+
+  private usdtToQty(usdt: number): number {
+    return usdt / this.currentPrice;
   }
 
   public async sell(qty: number): Promise<void> {
@@ -94,7 +94,7 @@ export class Executor extends EntityWithEvents<{
     while (true) {
       this.currentPrice = await BinanceRepository.getPrice(pair);
 
-      if (!this.qtyGreaterMin) break;
+      if (!this.isQtyGreaterMin) break;
 
       const order = await this.execute('SELL');
       if (!order) break;
@@ -104,7 +104,7 @@ export class Executor extends EntityWithEvents<{
       this.usdt += order.executedQty * this.currentPrice;
       this.qty -= order.executedQty;
 
-      if (this.isSuccess) break;
+      if (this.isSuccess()) break;
     }
 
     await this.runEvent('filled');
@@ -118,14 +118,14 @@ export class Executor extends EntityWithEvents<{
     };
   }
 
-  private async execute(side: 'BUY' | 'SELL'): Promise<Order> {
+  private async execute(side: 'BUY' | 'SELL', qty: number): Promise<Order> {
     const { currentPrice, orderOptions, pair } = this;
 
     const newOrder = await BinanceRepository.createOrder(
       pair,
       currentPrice,
       side,
-      this.validQty,
+      this.toValidQty(qty),
       orderOptions.typeOrder,
     );
     console.log('Action.execute: newOrder =', newOrder);
@@ -142,8 +142,8 @@ export class Executor extends EntityWithEvents<{
     return await BinanceRepository.cancelOrder(symbol, orderId);
   }
 
-  private get validQty(): number {
-    const { qty, currentPrice, lotParams } = this;
+  private toValidQty(qty: number): number {
+    const { currentPrice, lotParams } = this;
 
     const { stepSize, maxNotional } = lotParams;
 
@@ -178,19 +178,6 @@ export class Executor extends EntityWithEvents<{
     this._currentPrice = value;
   }
 
-  private get qty(): number {
-    const { _qty } = this;
-
-    if (_qty === undefined) {
-      throw new ErrorInfo('Action.qty', '_qty не установлен', this);
-    }
-
-    return _qty;
-  }
-  private set qty(value: number) {
-    this._qty = value;
-  }
-
   private get order(): Order {
     const { _order } = this;
 
@@ -204,14 +191,14 @@ export class Executor extends EntityWithEvents<{
     this._order = value;
   }
 
-  private get isSuccess() {
-    const { lotParams, order, qty } = this;
+  private isSuccess(qty: number) {
+    const { lotParams, order } = this;
 
     return order.isFilled && lotParams.stepSize >= qty;
   }
 
-  private get qtyGreaterMin(): boolean {
-    const { lotParams, currentPrice, qty } = this;
+  private isQtyGreaterMin(qty: number): boolean {
+    const { lotParams, currentPrice } = this;
 
     return qty > lotParams.minNotional / currentPrice;
   }
