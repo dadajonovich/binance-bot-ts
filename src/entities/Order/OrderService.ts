@@ -1,7 +1,22 @@
+import { BinanceRepository } from '../Binance';
 import { Deal } from '../Deal';
 import { Order, OrderDto } from './Order';
 
 export class OrderService {
+  public static async getOrder(
+    ...args: Parameters<(typeof BinanceRepository)['getOrder']>
+  ) {
+    const order = await BinanceRepository.getOrder(...args);
+    return this.updateOrCreate(order);
+  }
+
+  public static async createOrder(
+    ...args: Parameters<(typeof BinanceRepository)['createOrder']>
+  ): Promise<Order> {
+    const order = await BinanceRepository.createOrder(...args);
+    return this.updateOrCreate(order);
+  }
+
   public static async getLastOrder(): Promise<Order | null> {
     return await Order.findOne({ order: [['orderId', 'DESC']] });
   }
@@ -16,7 +31,7 @@ export class OrderService {
     return id;
   }
 
-  public static async updateOrCreate(orderDto: OrderDto) {
+  private static async updateOrCreate(orderDto: OrderDto): Promise<Order> {
     const {
       symbol,
       orderId,

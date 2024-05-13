@@ -1,4 +1,6 @@
 import { Sequelize } from 'sequelize';
+import { Order } from '../entities/Order';
+import { Deal } from '../entities/Deal';
 
 export const sequelize = new Sequelize({
   dialect: 'sqlite',
@@ -8,6 +10,8 @@ export const sequelize = new Sequelize({
 
 export const connect = async () => {
   try {
+    Order.belongsTo(Deal);
+    Deal.hasMany(Order);
     await sequelize.authenticate();
     await sequelize.sync({ force: false });
     console.log('Connection has been established successfully.');

@@ -4,6 +4,7 @@ import { ErrorInfo } from '../includes/ErrorInfo';
 import { sleep } from '../includes/sleep';
 import { BinanceRepository, LotParams } from './Binance';
 import { Order } from './Order';
+import { OrderService } from './Order';
 
 type OrderOptions = {
   typeOrder?: Order['type'];
@@ -64,12 +65,13 @@ export class Executor extends EntityWithEvents<{
       if (!order) break;
 
       this.order = order;
+
       muchUsdt -= order.cummulativeQuoteQty;
+      this.usdt += order.cummulativeQuoteQty;
+      // muchUsdt = usdtQty - this.usdt;
 
       if (this.isSuccess(this.usdtToQty(muchUsdt))) break;
     }
-
-    this.usdt = usdtQty - muchUsdt;
   }
 
   private usdtToQty(usdt: number): number {
@@ -78,6 +80,8 @@ export class Executor extends EntityWithEvents<{
 
   public async sell(qty: number): Promise<void> {
     const { pair, lotParams } = this;
+
+    let muchQty = qty;
 
     console.log('Action.sell');
 
@@ -88,23 +92,21 @@ export class Executor extends EntityWithEvents<{
       });
     }
 
-    this.qty = qty;
-
     // eslint-disable-next-line no-constant-condition
     while (true) {
       this.currentPrice = await BinanceRepository.getPrice(pair);
 
-      if (!this.isQtyGreaterMin) break;
+      if (!this.isQtyGreaterMin(muchQty)) break;
 
-      const order = await this.execute('SELL');
+      const order = await this.execute('SELL', muchQty);
       if (!order) break;
 
       this.order = order;
 
       this.usdt += order.executedQty * this.currentPrice;
-      this.qty -= order.executedQty;
+      muchQty -= order.executedQty;
 
-      if (this.isSuccess()) break;
+      if (this.isSuccess(muchQty)) break;
     }
 
     await this.runEvent('filled');
@@ -121,22 +123,25 @@ export class Executor extends EntityWithEvents<{
   private async execute(side: 'BUY' | 'SELL', qty: number): Promise<Order> {
     const { currentPrice, orderOptions, pair } = this;
 
-    const newOrder = await BinanceRepository.createOrder(
+    const order = await OrderService.createOrder(
       pair,
       currentPrice,
       side,
       this.toValidQty(qty),
       orderOptions.typeOrder,
     );
-    console.log('Action.execute: newOrder =', newOrder);
-    await this.runEvent('createdOrder', newOrder);
-    if (newOrder.isFilled) return newOrder;
+
+    console.log('Action.execute: newOrder =', order);
+    await this.runEvent('createdOrder', order);
+    if (order.isFilled) return order;
 
     await sleep(1000 * 60 * 0.25);
 
-    const { symbol, orderId } = newOrder;
+    const { symbol, orderId } = order;
 
-    const currentOrder = await BinanceRepository.getOrder(symbol, orderId);
+    const currentOrderDto = await BinanceRepository.getOrder(symbol, orderId);
+    const currentOrder = await OrderService.updateOrCreate(currentOrderDto);
+
     if (currentOrder.isFilled) return currentOrder;
 
     return await BinanceRepository.cancelOrder(symbol, orderId);
